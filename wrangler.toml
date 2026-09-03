@@ -1,0 +1,10 @@
+name = "godpp"
+main = "src/index.ts"
+compatibility_date = "2024-09-03"
+compatibility_flags = ["nodejs_compat"]
+
+# 정적 웹 자산 (Next.js output: 'export'의 out 디렉터리)
+[assets]
+directory = "./out"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
