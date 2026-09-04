@@ -34,6 +34,18 @@ export const Header: React.FC<HeaderProps> = ({ currentRole = 'consumer', onRole
 
   return (
     <>
+      {/* 최상단 데모 안내 배너 */}
+      <div className="w-full bg-gradient-to-r from-amber-500/10 via-emerald-500/10 to-sky-500/10 border-b border-white/5 py-1 px-4 text-center text-[11px] text-slate-300 flex items-center justify-center gap-2">
+        <span className="inline-flex items-center gap-1 font-bold text-amber-400">
+          <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+          DEMO 환경
+        </span>
+        <span className="text-slate-600 hidden sm:inline">|</span>
+        <span className="text-slate-400 text-[10.5px] sm:text-[11px]">
+          EU ESPR 규제 대응 및 순환경제 실증을 위한 <strong>인터랙티브 데모 버전</strong>입니다. (실시간 시뮬레이션 지원)
+        </span>
+      </div>
+
       <header className="sticky top-0 z-40 w-full border-b border-white/10 bg-slate-950/80 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
@@ -50,7 +62,10 @@ export const Header: React.FC<HeaderProps> = ({ currentRole = 'consumer', onRole
                     <span className="font-extrabold text-xl tracking-tight bg-gradient-to-r from-white via-slate-200 to-emerald-400 bg-clip-text text-transparent">
                       GoDPP
                     </span>
-                    <span className="px-2 py-0.5 text-[10px] font-bold tracking-wider uppercase bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 rounded-full">
+                    <span className="px-1.5 py-0.5 text-[9px] font-black tracking-wider uppercase bg-amber-500/15 text-amber-400 border border-amber-500/30 rounded-md">
+                      DEMO
+                    </span>
+                    <span className="px-2 py-0.5 text-[10px] font-bold tracking-wider uppercase bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 rounded-full hidden sm:inline-block">
                       ESPR Ready
                     </span>
                   </div>
