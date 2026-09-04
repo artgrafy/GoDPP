@@ -18,9 +18,9 @@ export const QRScannerModal: React.FC<QRScannerModalProps> = ({ isOpen, onClose 
   const handleNavigate = (id: string, isFabric = false) => {
     onClose();
     if (isFabric) {
-      router.push(`/fabric/${id}`);
+      router.push(`/fabric?id=${id}`);
     } else {
-      router.push(`/p/${id}`);
+      router.push(`/p?id=${id}`);
     }
   };
 

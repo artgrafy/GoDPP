@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams, useParams } from 'next/navigation';
 import { getPassportById } from '@/lib/supabase';
 import { FashionDPP } from '@/types/dpp';
 import { Header } from '@/components/Header';
@@ -27,8 +27,19 @@ import {
   Globe2
 } from 'lucide-react';
 
-export function PassportDetailClient({ passportId }: { passportId: string }) {
+export function PassportDetailClient({ passportId: propPassportId }: { passportId?: string }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const params = useParams();
+
+  // 1. prop -> 2. searchParams (?id=...) -> 3. dynamic route params ([id]) -> 4. window.location pathname
+  const rawId = propPassportId || 
+    (searchParams ? searchParams.get('id') : null) || 
+    (params?.id as string) || 
+    (typeof window !== 'undefined' ? window.location.pathname.split('/p/')[1]?.split('?')[0] : '');
+
+  const passportId = typeof rawId === 'string' ? decodeURIComponent(rawId).trim() : '';
+
   const [passport, setPassport] = useState<FashionDPP | null>(null);
   const [loading, setLoading] = useState(true);
   const [isDeepDataOpen, setIsDeepDataOpen] = useState(false);
@@ -36,13 +47,30 @@ export function PassportDetailClient({ passportId }: { passportId: string }) {
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
+    let isMounted = true;
     async function loadPassport() {
-      if (!passportId) return;
-      setLoading(false);
-      const data = await getPassportById(passportId);
-      setPassport(data);
+      if (!passportId) {
+        setLoading(false);
+        return;
+      }
+      setLoading(true);
+      try {
+        const data = await getPassportById(passportId);
+        if (isMounted) {
+          setPassport(data);
+        }
+      } catch (err) {
+        console.error('[GoDPP] Load passport detail failed:', err);
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
     }
     loadPassport();
+    return () => {
+      isMounted = false;
+    };
   }, [passportId]);
 
   const handleShare = () => {
@@ -70,7 +98,7 @@ export function PassportDetailClient({ passportId }: { passportId: string }) {
           <Shirt className="w-12 h-12 text-slate-500 mx-auto mb-4" />
           <h2 className="text-xl font-bold text-white mb-2">여권을 찾을 수 없습니다</h2>
           <p className="text-xs text-slate-400 mb-6">
-            ID: <span className="font-mono text-emerald-400">{passportId}</span>에 해당하는 DPP가 존재하지 않습니다.
+            ID: <span className="font-mono text-emerald-400">{passportId || '미지정'}</span>에 해당하는 DPP가 존재하지 않습니다.
           </p>
           <button
             onClick={() => router.push('/')}
@@ -128,6 +156,10 @@ export function PassportDetailClient({ passportId }: { passportId: string }) {
                 src={passport.image_url}
                 alt={passport.product_name}
                 className="w-full h-full object-cover"
+                onError={(e) => {
+                  // 이미지 로드 실패 시 대체 데님/의류 이미지로 fallback
+                  (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=1000&q=80';
+                }}
               />
               <div className="absolute bottom-2 left-2 right-2 px-2.5 py-1 rounded-xl bg-slate-950/85 backdrop-blur-md text-[10px] font-mono text-emerald-300 border border-emerald-500/30 text-center">
                 DPP ID: {passport.id}
@@ -249,7 +281,7 @@ export function PassportDetailClient({ passportId }: { passportId: string }) {
                 </h4>
               </div>
               <button
-                onClick={() => router.push(`/fabric/${passport.fabric_snapshot?.id}`)}
+                onClick={() => router.push(`/fabric?id=${passport.fabric_snapshot?.id}`)}
                 className="px-3 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-semibold flex items-center gap-1 transition-colors"
               >
                 원단 DPP 인증서 확인

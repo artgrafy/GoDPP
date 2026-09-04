@@ -71,7 +71,7 @@ export default function HomePage() {
 
             <div className="flex flex-wrap items-center justify-center gap-4">
               <Link
-                href="/p/DPP-2026-JKT-0042"
+                href="/p?id=DPP-2026-JKT-0042"
                 className="px-6 py-3.5 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-slate-950 font-extrabold text-sm shadow-xl shadow-emerald-500/25 flex items-center gap-2 transition-all transform hover:-translate-y-0.5"
               >
                 <Shirt className="w-4 h-4" />
@@ -128,7 +128,7 @@ export default function HomePage() {
                 </p>
               </div>
               <Link
-                href="/p/DPP-2026-JKT-0042"
+                href="/p?id=DPP-2026-JKT-0042"
                 className="text-xs font-bold text-sky-400 flex items-center gap-1 group-hover:gap-2 transition-all pt-3 border-t border-white/5"
               >
                 소비자 랜딩 바로가기 <ArrowRight className="w-3.5 h-3.5" />
@@ -212,6 +212,9 @@ export default function HomePage() {
                     src={passport.image_url}
                     alt={passport.product_name}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=1000&q=80';
+                    }}
                   />
                   <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-slate-950/80 backdrop-blur-sm text-[10px] font-bold text-emerald-400 border border-emerald-500/30">
                     에코스코어 {passport.eco_scores.overallScore}점
@@ -242,7 +245,7 @@ export default function HomePage() {
                       <div className="p-2 rounded-lg bg-slate-900/80 border border-white/5 mb-3 text-[11px] flex items-center justify-between">
                         <span className="text-slate-400">연동 원단:</span>
                         <Link
-                          href={`/fabric/${passport.fabric_snapshot.id}`}
+                          href={`/fabric?id=${passport.fabric_snapshot.id}`}
                           className="font-mono text-sky-400 hover:underline font-semibold"
                         >
                           {passport.fabric_snapshot.id}
@@ -254,7 +257,7 @@ export default function HomePage() {
                   {/* 액션 버튼 */}
                   <div className="flex items-center gap-2 pt-3 border-t border-white/5">
                     <Link
-                      href={`/p/${passport.id}`}
+                      href={`/p?id=${passport.id}`}
                       className="flex-1 py-2 px-3 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-xs font-semibold flex items-center justify-center gap-1 transition-colors"
                     >
                       소비자 뷰 열기
@@ -343,7 +346,7 @@ export default function HomePage() {
                     🛡️ {fabric.compliance_data.pfasFree ? 'PFAS-Free 친환경 방수' : '규제 적합'}
                   </span>
                   <Link
-                    href={`/fabric/${fabric.id}`}
+                    href={`/fabric?id=${fabric.id}`}
                     className="text-xs font-bold text-sky-400 hover:text-sky-300 flex items-center gap-1"
                   >
                     원단 상세 명세서 <ArrowRight className="w-3.5 h-3.5" />

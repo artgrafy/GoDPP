@@ -416,6 +416,9 @@ export default function ManufacturerDashboard() {
                     src={p.image_url}
                     alt={p.product_name}
                     className="w-16 h-16 rounded-xl object-cover bg-slate-800 border border-white/10 shrink-0"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=1000&q=80';
+                    }}
                   />
                   <div>
                     <div className="flex items-center gap-2 mb-1">
@@ -441,7 +444,7 @@ export default function ManufacturerDashboard() {
                     QR 라벨 인쇄
                   </button>
                   <button
-                    onClick={() => router.push(`/p/${p.id}`)}
+                    onClick={() => router.push(`/p?id=${p.id}`)}
                     className="px-3.5 py-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-semibold flex items-center gap-1 transition-colors"
                   >
                     공개 뷰 확인

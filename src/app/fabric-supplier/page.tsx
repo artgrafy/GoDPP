@@ -123,7 +123,7 @@ export default function FabricSupplierPage() {
       const updated = await getFabrics();
       setFabrics(updated);
       setIsFormOpen(false);
-      router.push(`/fabric/${newId}`);
+      router.push(`/fabric?id=${newId}`);
     } finally {
       setSaving(false);
     }
@@ -416,7 +416,7 @@ export default function FabricSupplierPage() {
 
                 <div className="flex items-center gap-2 self-end md:self-auto shrink-0">
                   <button
-                    onClick={() => router.push(`/fabric/${f.id}`)}
+                    onClick={() => router.push(`/fabric?id=${f.id}`)}
                     className="px-4 py-2 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 border border-purple-500/30 text-xs font-semibold flex items-center gap-1.5 transition-colors"
                   >
                     원단 DPP 상세 명세서

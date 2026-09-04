@@ -25,7 +25,7 @@ export const SupplyChainTimeline: React.FC<SupplyChainTimelineProps> = ({ steps,
         </div>
         {fabricId && (
           <Link
-            href={`/fabric/${fabricId}`}
+            href={`/fabric?id=${fabricId}`}
             className="px-3 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-xs font-semibold flex items-center gap-1.5 transition-colors"
           >
             연동 원단 DPP 보기

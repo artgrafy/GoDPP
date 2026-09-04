@@ -63,9 +63,9 @@ export const Header: React.FC<HeaderProps> = ({ currentRole = 'consumer', onRole
               {/* 주요 메뉴 */}
               <nav className="hidden md:flex items-center gap-1 pl-4 border-l border-white/10 text-sm font-medium">
                 <Link
-                  href="/p/DPP-2026-JKT-0042"
+                  href="/p?id=DPP-2026-JKT-0042"
                   className={`px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 ${
-                    pathname.startsWith('/p/')
+                    pathname.startsWith('/p')
                       ? 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/20'
                       : 'text-slate-300 hover:text-white hover:bg-white/5'
                   }`}

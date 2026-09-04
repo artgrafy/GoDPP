@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams, useParams } from 'next/navigation';
 import { getFabricById, getPassports } from '@/lib/supabase';
 import { FabricDPP, FashionDPP } from '@/types/dpp';
 import { Header } from '@/components/Header';
@@ -17,22 +17,50 @@ import {
   Sparkles
 } from 'lucide-react';
 
-export function FabricDetailClient({ fabricId }: { fabricId: string }) {
+export function FabricDetailClient({ fabricId: propFabricId }: { fabricId?: string }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const params = useParams();
+
+  // 1. prop -> 2. searchParams (?id=...) -> 3. dynamic route params ([id]) -> 4. window.location pathname
+  const rawId = propFabricId || 
+    (searchParams ? searchParams.get('id') : null) || 
+    (params?.id as string) || 
+    (typeof window !== 'undefined' ? window.location.pathname.split('/fabric/')[1]?.split('?')[0] : '');
+
+  const fabricId = typeof rawId === 'string' ? decodeURIComponent(rawId).trim() : '';
+
   const [fabric, setFabric] = useState<FabricDPP | null>(null);
   const [relatedPassports, setRelatedPassports] = useState<FashionDPP[]>([]);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
+    let isMounted = true;
     async function load() {
-      if (!fabricId) return;
-      setLoading(false);
-      const [fData, pData] = await Promise.all([getFabricById(fabricId), getPassports()]);
-      setFabric(fData);
-      setRelatedPassports(pData.filter((p) => p.fabric_id === fabricId));
+      if (!fabricId) {
+        setLoading(false);
+        return;
+      }
+      setLoading(true);
+      try {
+        const [fData, pData] = await Promise.all([getFabricById(fabricId), getPassports()]);
+        if (isMounted) {
+          setFabric(fData);
+          setRelatedPassports(pData.filter((p) => p.fabric_id === fabricId));
+        }
+      } catch (err) {
+        console.error('[GoDPP] Load fabric detail failed:', err);
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
     }
     load();
+    return () => {
+      isMounted = false;
+    };
   }, [fabricId]);
 
   const handleShare = () => {
@@ -60,7 +88,7 @@ export function FabricDetailClient({ fabricId }: { fabricId: string }) {
           <Layers className="w-12 h-12 text-slate-500 mx-auto mb-4" />
           <h2 className="text-xl font-bold text-white mb-2">원단 여권을 찾을 수 없습니다</h2>
           <p className="text-xs text-slate-400 mb-6">
-            ID: <span className="font-mono text-purple-400">{fabricId}</span>에 해당하는 원단이 존재하지 않습니다.
+            ID: <span className="font-mono text-purple-400">{fabricId || '미지정'}</span>에 해당하는 원단이 존재하지 않습니다.
           </p>
           <button
             onClick={() => router.push('/fabric-supplier')}
@@ -253,7 +281,7 @@ export function FabricDetailClient({ fabricId }: { fabricId: string }) {
               {relatedPassports.map((p) => (
                 <div
                   key={p.id}
-                  onClick={() => router.push(`/p/${p.id}`)}
+                  onClick={() => router.push(`/p?id=${p.id}`)}
                   className="p-4 rounded-2xl bg-slate-900/80 hover:bg-slate-800 border border-white/5 hover:border-emerald-500/30 transition-all cursor-pointer flex items-center gap-3 group"
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -261,6 +289,9 @@ export function FabricDetailClient({ fabricId }: { fabricId: string }) {
                     src={p.image_url}
                     alt={p.product_name}
                     className="w-12 h-12 rounded-xl object-cover bg-slate-800 shrink-0"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=1000&q=80';
+                    }}
                   />
                   <div className="flex-1 truncate">
                     <p className="text-xs font-bold text-white group-hover:text-emerald-400 transition-colors truncate">

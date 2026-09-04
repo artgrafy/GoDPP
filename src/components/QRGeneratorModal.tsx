@@ -19,7 +19,7 @@ export const QRGeneratorModal: React.FC<QRGeneratorModalProps> = ({ passport, is
 
   // 실제 QR 연결 URL (배포 도메인 dpp.using.ai.kr 기준)
   const origin = typeof window !== 'undefined' ? window.location.origin : 'https://dpp.using.ai.kr';
-  const passportUrl = `${origin}/p/${passport.id}`;
+  const passportUrl = `${origin}/p?id=${passport.id}`;
 
   const handleCopyUrl = () => {
     navigator.clipboard.writeText(passportUrl);
