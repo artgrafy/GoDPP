@@ -75,7 +75,7 @@ export default function ManufacturerDashboard() {
     product_name: '',
     brand_name: 'ARCTERA Sustainability',
     manufactured_country: 'KR (대한민국)',
-    image_url: PRESET_IMAGES[0].url,
+    image_url: '',
     selected_fabric_id: '',
     totalCarbonKg: 7.2,
     repairabilityScore: 9.0,
@@ -161,7 +161,7 @@ export default function ManufacturerDashboard() {
         category: finalCategory,
         season: finalSeason,
         manufactured_country: formData.manufactured_country,
-        image_url: formData.image_url,
+        image_url: formData.image_url || PRESET_IMAGES[0].url,
         fabric_id: formData.selected_fabric_id,
         fabric_snapshot: selectedFabric,
         materials_summary: selectedFabric ? selectedFabric.composition : [
@@ -244,6 +244,7 @@ export default function ManufacturerDashboard() {
       await savePassport(newPassport);
       const updated = await getPassports();
       setPassports(updated);
+      setFormData((prev) => ({ ...prev, product_name: '', image_url: '' }));
       setIsFormOpen(false);
       setSelectedQR(newPassport);
     } finally {
@@ -273,7 +274,13 @@ export default function ManufacturerDashboard() {
           </div>
 
           <button
-            onClick={() => setIsFormOpen(!isFormOpen)}
+            onClick={() => {
+              if (!isFormOpen) {
+                setFormData((prev) => ({ ...prev, product_name: '', image_url: '' }));
+                if (fileInputRef.current) fileInputRef.current.value = '';
+              }
+              setIsFormOpen(!isFormOpen);
+            }}
             className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-slate-950 font-bold text-xs flex items-center gap-2 shadow-lg shadow-emerald-500/20 transition-all self-start sm:self-auto"
           >
             {isFormOpen ? '등록 폼 닫기' : <><Plus className="w-4 h-4" /> 신규 패션 DPP 발급</>}
@@ -439,7 +446,10 @@ export default function ManufacturerDashboard() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => setFormData({ ...formData, image_url: '' })}
+                          onClick={() => {
+                            setFormData((prev) => ({ ...prev, image_url: '' }));
+                            if (fileInputRef.current) fileInputRef.current.value = '';
+                          }}
                           className="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 transition-colors"
                           title="이미지 삭제"
                         >
