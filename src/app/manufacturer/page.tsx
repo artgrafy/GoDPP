@@ -47,10 +47,12 @@ const SEASON_OPTIONS = [
 ];
 
 const PRESET_IMAGES = [
-  { label: '🧥 기능성 자켓', url: 'https://images.unsplash.com/photo-1551028719-00167b16eac5?auto=format&fit=crop&w=1000&q=80' },
+  { label: '🧥 기능성 자켓', url: 'https://images.unsplash.com/photo-1551488831-00ddcb6c6bd3?auto=format&fit=crop&w=1000&q=80' },
   { label: '👖 오가닉 데님', url: 'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=1000&q=80' },
-  { label: '👕 코튼 셔츠', url: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=1000&q=80' },
-  { label: '🧶 에코 니트', url: 'https://images.unsplash.com/photo-1434389677669-e08b4cac3105?auto=format&fit=crop&w=1000&q=80' }
+  { label: '👔 코튼 셔츠', url: 'https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&w=1000&q=80' },
+  { label: '🧶 에코 니트', url: 'https://images.unsplash.com/photo-1574201635302-388dd92a4c3f?auto=format&fit=crop&w=1000&q=80' },
+  { label: '👕 베이직 티셔츠', url: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=1000&q=80' },
+  { label: '👗 에코 드레스', url: 'https://images.unsplash.com/photo-1595777457583-95e059d581b8?auto=format&fit=crop&w=1000&q=80' },
 ];
 
 export default function ManufacturerDashboard() {
@@ -481,13 +483,19 @@ export default function ManufacturerDashboard() {
                           key={preset.label}
                           type="button"
                           onClick={() => setFormData({ ...formData, image_url: preset.url })}
-                          className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all ${
+                          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all ${
                             formData.image_url === preset.url
-                              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm'
-                              : 'bg-slate-900 border border-white/10 text-slate-300 hover:bg-slate-800'
+                              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm ring-1 ring-emerald-500/40'
+                              : 'bg-slate-900 border border-white/10 text-slate-300 hover:bg-slate-800 hover:border-white/20'
                           }`}
                         >
-                          {preset.label}
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={preset.url}
+                            alt=""
+                            className="w-3.5 h-3.5 rounded-full object-cover shrink-0"
+                          />
+                          <span>{preset.label}</span>
                         </button>
                       ))}
                     </div>
