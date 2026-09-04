@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Header } from '@/components/Header';
 import { getPassports, getFabrics, savePassport } from '@/lib/supabase';
@@ -17,25 +17,65 @@ import {
   Building2,
   Trash2,
   Save,
-  ArrowRight
+  ArrowRight,
+  UploadCloud,
+  ImageIcon,
+  RefreshCw,
+  X
 } from 'lucide-react';
+
+const CATEGORY_OPTIONS = [
+  'Outerwear (기능성 아웃도어/자켓/코트)',
+  'Tops (티셔츠/셔츠/맨투맨/니트)',
+  'Bottoms (팬츠/슬랙스/데님/청바지)',
+  'Dress / One-piece (원피스/점프수트)',
+  'Sportswear (스포츠/애슬레저/트레이닝)',
+  'Underwear / Loungewear (속옷/이지웨어)',
+  'Footwear / Bags (신발/가방/잡화)',
+  '직접 입력'
+];
+
+const SEASON_OPTIONS = [
+  '2026 S/S Circular Collection',
+  '2026 F/W Circular Collection',
+  '2026 S/S Timeless Eco',
+  '2026 F/W Eco Tech',
+  '2027 S/S Future Sustainability',
+  '2027 F/W Net-Zero Line',
+  'All Season / Carry-Over (상시/시즌리스)',
+  '직접 입력'
+];
+
+const PRESET_IMAGES = [
+  { label: '🧥 기능성 자켓', url: 'https://images.unsplash.com/photo-1551028719-00167b16eac5?auto=format&fit=crop&w=1000&q=80' },
+  { label: '👖 오가닉 데님', url: 'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=1000&q=80' },
+  { label: '👕 코튼 셔츠', url: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=1000&q=80' },
+  { label: '🧶 에코 니트', url: 'https://images.unsplash.com/photo-1434389677669-e08b4cac3105?auto=format&fit=crop&w=1000&q=80' }
+];
 
 export default function ManufacturerDashboard() {
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [passports, setPassports] = useState<FashionDPP[]>([]);
   const [fabrics, setFabrics] = useState<FabricDPP[]>([]);
   const [selectedQR, setSelectedQR] = useState<FashionDPP | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+
+  // 카테고리 & 시즌 선택 상태
+  const [selectedCategoryOption, setSelectedCategoryOption] = useState(CATEGORY_OPTIONS[0]);
+  const [customCategory, setCustomCategory] = useState('');
+  
+  const [selectedSeasonOption, setSelectedSeasonOption] = useState(SEASON_OPTIONS[0]);
+  const [customSeason, setCustomSeason] = useState('');
 
   // 폼 상태
   const [formData, setFormData] = useState({
     product_name: '',
     brand_name: 'ARCTERA Sustainability',
-    category: 'Outerwear (기능성 아웃도어)',
-    season: '2026 F/W Circular',
     manufactured_country: 'KR (대한민국)',
-    image_url: 'https://images.unsplash.com/photo-1551028719-00167b16eac5?auto=format&fit=crop&w=1000&q=80',
+    image_url: PRESET_IMAGES[0].url,
     selected_fabric_id: '',
     totalCarbonKg: 7.2,
     repairabilityScore: 9.0,
@@ -54,21 +94,72 @@ export default function ManufacturerDashboard() {
     load();
   }, []);
 
+  // 이미지 파일 업로드 & 브라우저 캔버스 최적화 압축
+  const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      alert('이미지 파일(PNG, JPG, JPEG, WebP 등)만 업로드 가능합니다.');
+      return;
+    }
+
+    setIsUploading(true);
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const maxDim = 1000;
+        let width = img.width;
+        let height = img.height;
+        if (width > height) {
+          if (width > maxDim) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          }
+        } else {
+          if (height > maxDim) {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+          setFormData((prev) => ({ ...prev, image_url: dataUrl }));
+        }
+        setIsUploading(false);
+      };
+      img.onerror = () => {
+        setIsUploading(false);
+        alert('이미지 로딩에 실패했습니다.');
+      };
+      img.src = event.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleCreatePassport = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.product_name) return;
 
     setSaving(true);
     try {
+      const finalCategory = selectedCategoryOption === '직접 입력' ? (customCategory.trim() || 'Outerwear') : selectedCategoryOption;
+      const finalSeason = selectedSeasonOption === '직접 입력' ? (customSeason.trim() || '2026 S/S Circular') : selectedSeasonOption;
       const selectedFabric = fabrics.find((f) => f.id === formData.selected_fabric_id);
-      const newId = `DPP-2026-${formData.category.slice(0, 3).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
+      const categoryTag = finalCategory.split(' ')[0].replace(/[^a-zA-Z]/g, '').slice(0, 3).toUpperCase() || 'APP';
+      const newId = `DPP-2026-${categoryTag}-${Math.floor(1000 + Math.random() * 9000)}`;
 
       const newPassport: FashionDPP = {
         id: newId,
         product_name: formData.product_name,
         brand_name: formData.brand_name,
-        category: formData.category,
-        season: formData.season,
+        category: finalCategory,
+        season: finalSeason,
         manufactured_country: formData.manufactured_country,
         image_url: formData.image_url,
         fabric_id: formData.selected_fabric_id,
@@ -138,7 +229,7 @@ export default function ManufacturerDashboard() {
           lcaMethodology: 'ISO 14040/44 Ecoinvent 3.9 (PEFCR)',
           scope1EmissionsKg: 0.9,
           scope2EmissionsKg: 1.5,
-          scope3EmissionsKg: Number(formData.totalCarbonKg) - 2.4,
+          scope3EmissionsKg: Math.max(0.5, Number(formData.totalCarbonKg) - 2.4),
           svhcChemicalStatus: 'SVHC 240종 전수 검사 불검출 (< 0.01%)',
           tariffsCode: '6201.93.0000',
           customsDeclarationId: `KR-CUSTOMS-2026-DPP-${Math.floor(100000 + Math.random() * 900000)}`,
@@ -235,28 +326,58 @@ export default function ManufacturerDashboard() {
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                      카테고리
+                      카테고리 *
                     </label>
-                    <input
-                      type="text"
-                      value={formData.category}
-                      onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                      className="w-full glass-input px-4 py-2.5 rounded-xl text-xs"
-                    />
+                    <select
+                      value={selectedCategoryOption}
+                      onChange={(e) => setSelectedCategoryOption(e.target.value)}
+                      className="w-full glass-input px-3 py-2.5 rounded-xl text-xs bg-slate-950 font-medium text-white"
+                    >
+                      {CATEGORY_OPTIONS.map((cat) => (
+                        <option key={cat} value={cat}>
+                          {cat}
+                        </option>
+                      ))}
+                    </select>
+                    {selectedCategoryOption === '직접 입력' && (
+                      <input
+                        type="text"
+                        placeholder="카테고리 직접 입력 (예: Outerwear, Accessories)"
+                        value={customCategory}
+                        onChange={(e) => setCustomCategory(e.target.value)}
+                        className="w-full glass-input px-3 py-2 rounded-xl text-xs mt-2 placeholder-slate-500 animate-fadeIn"
+                        required
+                      />
+                    )}
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                      시즌
+                      시즌 *
                     </label>
-                    <input
-                      type="text"
-                      value={formData.season}
-                      onChange={(e) => setFormData({ ...formData, season: e.target.value })}
-                      className="w-full glass-input px-4 py-2.5 rounded-xl text-xs"
-                    />
+                    <select
+                      value={selectedSeasonOption}
+                      onChange={(e) => setSelectedSeasonOption(e.target.value)}
+                      className="w-full glass-input px-3 py-2.5 rounded-xl text-xs bg-slate-950 font-medium text-white"
+                    >
+                      {SEASON_OPTIONS.map((season) => (
+                        <option key={season} value={season}>
+                          {season}
+                        </option>
+                      ))}
+                    </select>
+                    {selectedSeasonOption === '직접 입력' && (
+                      <input
+                        type="text"
+                        placeholder="시즌 직접 입력 (예: 2026 S/S Special)"
+                        value={customSeason}
+                        onChange={(e) => setCustomSeason(e.target.value)}
+                        className="w-full glass-input px-3 py-2 rounded-xl text-xs mt-2 placeholder-slate-500 animate-fadeIn"
+                        required
+                      />
+                    )}
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-slate-300 mb-1.5">
@@ -271,16 +392,96 @@ export default function ManufacturerDashboard() {
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                    상품 이미지 URL
-                  </label>
+                {/* 상품 이미지 업로드 영역 */}
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs font-semibold text-slate-300">
+                      대표 상품 이미지 *
+                    </label>
+                    <span className="text-[10px] text-slate-400">PNG, JPG, WebP 자동 최적화</span>
+                  </div>
+
                   <input
-                    type="url"
-                    value={formData.image_url}
-                    onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                    className="w-full glass-input px-4 py-2.5 rounded-xl text-xs"
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleImageFileChange}
+                    accept="image/*"
+                    className="hidden"
                   />
+
+                  {formData.image_url ? (
+                    <div className="p-3 rounded-2xl bg-slate-900/90 border border-emerald-500/30 flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={formData.image_url}
+                          alt="미리보기"
+                          className="w-14 h-14 rounded-xl object-cover bg-slate-800 border border-white/10 shrink-0"
+                        />
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-white flex items-center gap-1.5">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                            이미지 등록 완료
+                          </p>
+                          <p className="text-[11px] text-slate-400 truncate">
+                            {isUploading ? '압축 처리 중...' : 'DPP 대표 썸네일 및 QR 상세 뷰에 표시됩니다'}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium transition-colors"
+                        >
+                          사진 변경
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setFormData({ ...formData, image_url: '' })}
+                          className="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 transition-colors"
+                          title="이미지 삭제"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div
+                      onClick={() => fileInputRef.current?.click()}
+                      className="border-2 border-dashed border-white/15 hover:border-emerald-400/50 rounded-2xl p-5 text-center cursor-pointer hover:bg-white/[0.02] transition-all group"
+                    >
+                      <UploadCloud className="w-8 h-8 text-slate-400 group-hover:text-emerald-400 mx-auto mb-2 transition-colors" />
+                      <p className="text-xs font-bold text-white mb-1">
+                        {isUploading ? '이미지 최적화 중...' : '클릭하여 내 PC에서 이미지 파일 업로드'}
+                      </p>
+                      <p className="text-[10px] text-slate-400">
+                        스마트폰 사진, 룩북 사진을 드래그하거나 선택하세요 (권장: 가로세로 800px 이상)
+                      </p>
+                    </div>
+                  )}
+
+                  {/* 프리셋 추천 이미지 빠른 선택 바 */}
+                  <div className="pt-1">
+                    <span className="text-[11px] text-slate-400 block mb-1.5">💡 또는 샘플 이미지에서 빠른 선택:</span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {PRESET_IMAGES.map((preset) => (
+                        <button
+                          key={preset.label}
+                          type="button"
+                          onClick={() => setFormData({ ...formData, image_url: preset.url })}
+                          className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all ${
+                            formData.image_url === preset.url
+                              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm'
+                              : 'bg-slate-900 border border-white/10 text-slate-300 hover:bg-slate-800'
+                          }`}
+                        >
+                          {preset.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </div>
 
