@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
-import { Download, Copy, Check, X, Printer, ExternalLink, Sparkles } from 'lucide-react';
+import { Copy, Check, X, Printer, ExternalLink, Sparkles } from 'lucide-react';
 import { FashionDPP } from '@/types/dpp';
 
 interface QRGeneratorModalProps {
@@ -80,7 +80,7 @@ export const QRGeneratorModal: React.FC<QRGeneratorModalProps> = ({ passport, is
         <div className="flex flex-col items-center justify-center p-6 bg-gradient-to-b from-slate-900 to-slate-950 rounded-2xl border border-white/10 shadow-inner mb-6">
           {labelType === 'hangtag' ? (
             /* 행택 스타일 */
-            <div className="w-72 bg-white text-slate-900 rounded-2xl p-6 shadow-2xl flex flex-col items-center text-center border-t-8 border-emerald-500 relative">
+            <div className="print-target paper w-72 rounded-2xl p-6 shadow-2xl flex flex-col items-center text-center border-t-8 border-emerald-500 relative">
               <div className="w-4 h-4 rounded-full border-2 border-slate-300 bg-slate-100 absolute top-2 left-1/2 -translate-x-1/2"></div>
               <div className="mt-2 mb-1 text-[11px] font-bold uppercase tracking-widest text-emerald-700">
                 EU Digital Product Passport
@@ -90,7 +90,7 @@ export const QRGeneratorModal: React.FC<QRGeneratorModalProps> = ({ passport, is
               </h4>
               <p className="text-[10px] text-slate-500 mb-4 font-mono">{passport.id}</p>
 
-              <div className="p-3 bg-white rounded-xl border border-slate-200 shadow-sm mb-3">
+              <div className="p-3 paper rounded-xl border border-slate-200 shadow-sm mb-3">
                 <QRCodeSVG
                   value={passportUrl}
                   size={140}
@@ -110,12 +110,12 @@ export const QRGeneratorModal: React.FC<QRGeneratorModalProps> = ({ passport, is
             </div>
           ) : (
             /* 케어라벨 스타일 */
-            <div className="w-64 bg-slate-900 text-white rounded-xl p-5 border border-slate-700 shadow-xl flex flex-col items-center text-center font-mono">
+            <div className="print-target w-64 bg-slate-900 text-white rounded-xl p-5 border border-slate-700 shadow-xl flex flex-col items-center text-center font-mono">
               <div className="text-[10px] font-bold tracking-wider text-emerald-400 mb-1">
                 CIRCULAR PASSPORT
               </div>
               <p className="text-[11px] font-bold text-white mb-2">{passport.brand_name}</p>
-              <div className="p-2 bg-white rounded-lg mb-2">
+              <div className="p-2 paper rounded-lg mb-2">
                 <QRCodeSVG
                   value={passportUrl}
                   size={120}
@@ -160,6 +160,7 @@ export const QRGeneratorModal: React.FC<QRGeneratorModalProps> = ({ passport, is
               라벨 인쇄 / PDF 저장
             </button>
           </div>
+
         </div>
       </div>
     </div>

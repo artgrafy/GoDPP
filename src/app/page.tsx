@@ -6,25 +6,41 @@ import { Header } from '@/components/Header';
 import { getPassports, getFabrics } from '@/lib/supabase';
 import { FashionDPP, FabricDPP } from '@/types/dpp';
 import { QRGeneratorModal } from '@/components/QRGeneratorModal';
-import { 
-  Shirt, 
-  Layers, 
-  QrCode, 
-  ShieldCheck, 
-  ArrowRight, 
-  Sparkles, 
-  Leaf, 
-  CheckCircle2, 
-  Building2, 
+import { QRCodeSVG } from 'qrcode.react';
+import { QRScannerModal } from '@/components/QRScannerModal';
+import {
+  Shirt,
+  Layers,
+  QrCode,
+  ShieldCheck,
+  ArrowRight,
+  Sparkles,
+  Leaf,
+  CheckCircle2,
+  Building2,
   FileText,
   Activity,
-  Globe2
+  Globe2,
+  BadgeCheck,
+  Clock,
+  ScanLine
 } from 'lucide-react';
+
+/** 메인에 노출할 카드 수 — 전체 목록은 각 관리 페이지가 담당한다 */
+const HOME_CARD_LIMIT = 4;
 
 export default function HomePage() {
   const [passports, setPassports] = useState<FashionDPP[]>([]);
   const [fabrics, setFabrics] = useState<FabricDPP[]>([]);
   const [selectedPassportForQR, setSelectedPassportForQR] = useState<FashionDPP | null>(null);
+  // 심사 포털은 아직 데모 범위 밖이라 진입 대신 안내만 띄운다.
+  const [reviewNotice, setReviewNotice] = useState(false);
+  // 소비자 진입점(히어로 버튼·소비자 카드)은 헤더의 'QR 스캔 데모'와 같은 모달을 연다.
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
+  // QR 에 실을 origin. 프리렌더 시점엔 카드 자체가 없으므로(데이터가 useEffect 로 들어온다)
+  // 서버/클라이언트 렌더 결과가 갈리지 않는다.
+  const dppOrigin =
+    typeof window !== 'undefined' ? window.location.origin : 'https://dpp.using.ai.kr';
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -58,52 +74,76 @@ export default function HomePage() {
             </div>
 
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight text-white leading-tight mb-6">
-              패션과 원단을 잇는 <br />
+              대한민국 섬유 패션 <br />
+              디지털 제품 여권 플랫폼 <br />
               <span className="bg-gradient-to-r from-emerald-400 via-teal-300 to-sky-400 bg-clip-text text-transparent">
-                디지털 제품 여권 (DPP)
+                kDPP
               </span>
             </h1>
 
             <p className="text-base sm:text-lg text-slate-300 leading-relaxed mb-8">
-              원단 공급사(Tier-2)의 친환경 소재 스펙과 인증부터 패션 제조사의 완제품 DPP 발급,
-              그리고 소비자의 스마트폰 QR 스캔 및 국가 기관 심층 감사까지 원스톱으로 지원합니다.
+              원사부터 완제품까지 국산 공정 이력을 잇고, 국산 섬유제품 인증기업 정보를 함께
+              기록합니다. 소비자는 QR 하나로 소재·탄소발자국·국산 인증을 확인하고, 규제기관이
+              데이터를 감사합니다.
             </p>
 
             <div className="flex flex-wrap items-center justify-center gap-4">
-              <Link
-                href="/p?id=DPP-2026-JKT-0042"
+              <button
+                type="button"
+                onClick={() => setIsScannerOpen(true)}
                 className="px-6 py-3.5 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-slate-950 font-extrabold text-sm shadow-xl shadow-emerald-500/25 flex items-center gap-2 transition-all transform hover:-translate-y-0.5"
               >
-                <Shirt className="w-4 h-4" />
+                <ScanLine className="w-4 h-4" />
                 소비자 QR 뷰 데모 체험
                 <ArrowRight className="w-4 h-4" />
-              </Link>
+              </button>
               <Link
                 href="/manufacturer"
                 className="px-6 py-3.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 border border-white/10 text-white font-bold text-sm flex items-center gap-2 transition-all"
               >
                 <QrCode className="w-4 h-4 text-emerald-400" />
-                패션 제조사 콘솔
+                패션 DPP 관리
               </Link>
               <Link
                 href="/fabric-supplier"
                 className="px-6 py-3.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 border border-white/10 text-white font-bold text-sm flex items-center gap-2 transition-all"
               >
                 <Layers className="w-4 h-4 text-sky-400" />
-                원단 업체 포털
+                원단 DPP 관리
               </Link>
             </div>
           </div>
 
           {/* 4대 주요 역할 카드 그리드 */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-16">
-            {/* 1. 패션 제조사 */}
+            {/* 1. 일반 소비자 */}
+            <div className="glass-panel p-6 rounded-2xl border border-white/10 hover:border-sky-500/40 transition-all group flex flex-col justify-between">
+              <div>
+                <div className="w-12 h-12 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400 mb-4 group-hover:scale-110 transition-transform">
+                  <Shirt className="w-6 h-6" />
+                </div>
+                <h3 className="text-base font-bold text-white mb-2">1. 일반 소비자</h3>
+                <p className="text-xs text-slate-400 leading-relaxed mb-4">
+                  카메라로 QR 스캔 시 친환경 에코스코어, 친환경 소재 구성, 세탁/수명 연장 가이드 및 순환경제 팁 확인
+                </p>
+              </div>
+              {/* 소비자는 전용 콘솔이 없다 — QR 스캔이 실제 진입 동선이므로 스캔 체험 모달로 보낸다. */}
+              <button
+                type="button"
+                onClick={() => setIsScannerOpen(true)}
+                className="text-xs font-bold text-sky-400 flex items-center gap-1 group-hover:gap-2 transition-all pt-3 border-t border-white/5 w-full"
+              >
+                QR 스캔 체험하기 <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            {/* 2. 패션 제조사 */}
             <div className="glass-panel p-6 rounded-2xl border border-white/10 hover:border-emerald-500/40 transition-all group flex flex-col justify-between">
               <div>
                 <div className="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 mb-4 group-hover:scale-110 transition-transform">
                   <QrCode className="w-6 h-6" />
                 </div>
-                <h3 className="text-base font-bold text-white mb-2">1. 패션 제조사</h3>
+                <h3 className="text-base font-bold text-white mb-2">2. 패션 제조사</h3>
                 <p className="text-xs text-slate-400 leading-relaxed mb-4">
                   원단 고유 ID 연동, 탄소발자국/소재 스펙 입력, 완제품 고유 DPP 발급 및 인쇄용 2D QR 라벨 생성
                 </p>
@@ -112,26 +152,7 @@ export default function HomePage() {
                 href="/manufacturer"
                 className="text-xs font-bold text-emerald-400 flex items-center gap-1 group-hover:gap-2 transition-all pt-3 border-t border-white/5"
               >
-                제조사 콘솔 바로가기 <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
-            </div>
-
-            {/* 2. 일반 소비자 */}
-            <div className="glass-panel p-6 rounded-2xl border border-white/10 hover:border-sky-500/40 transition-all group flex flex-col justify-between">
-              <div>
-                <div className="w-12 h-12 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400 mb-4 group-hover:scale-110 transition-transform">
-                  <Shirt className="w-6 h-6" />
-                </div>
-                <h3 className="text-base font-bold text-white mb-2">2. 일반 소비자</h3>
-                <p className="text-xs text-slate-400 leading-relaxed mb-4">
-                  카메라로 QR 스캔 시 친환경 에코스코어, 친환경 소재 구성, 세탁/수명 연장 가이드 및 순환경제 팁 확인
-                </p>
-              </div>
-              <Link
-                href="/p?id=DPP-2026-JKT-0042"
-                className="text-xs font-bold text-sky-400 flex items-center gap-1 group-hover:gap-2 transition-all pt-3 border-t border-white/5"
-              >
-                소비자 랜딩 바로가기 <ArrowRight className="w-3.5 h-3.5" />
+                패션 DPP 관리 열기 <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             </div>
 
@@ -150,7 +171,7 @@ export default function HomePage() {
                 href="/fabric-supplier"
                 className="text-xs font-bold text-purple-400 flex items-center gap-1 group-hover:gap-2 transition-all pt-3 border-t border-white/5"
               >
-                원단 포털 바로가기 <ArrowRight className="w-3.5 h-3.5" />
+                원단 DPP 관리 열기 <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             </div>
 
@@ -173,6 +194,63 @@ export default function HomePage() {
               </Link>
             </div>
           </div>
+
+          {/* 국산 섬유제품 인증 진입 */}
+          <div className="glass-panel-emerald rounded-2xl border border-emerald-500/25 p-6 sm:p-8 mt-6">
+            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
+                  <BadgeCheck className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white mb-1.5">
+                    국산 섬유제품 인증 <span className="text-emerald-400">(섬산련 인증제도 연계)</span>
+                  </h3>
+                  <p className="text-xs text-slate-300 leading-relaxed max-w-2xl">
+                    섬산련 인증은 <strong className="text-slate-100">업체 단위</strong>로 계약하고(2년),
+                    인증기업이 트랙별로 <strong className="text-slate-100">마크</strong>를 발급받아
+                    자사 제품에 부착합니다.
+                    원사 → 제직·편직 → 염색·가공 → 봉제 공정으로 트랙(
+                    <strong className="text-slate-100">T1</strong> ·{' '}
+                    <strong className="text-slate-100">T2</strong> ·{' '}
+                    <strong className="text-slate-100">T3 Yarn Forward</strong>)을 자동 판정하고, 제3자
+                    인증(인증서)과 기업자율인증(확인서) 투트랙으로 운영합니다.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-2 shrink-0">
+                <Link
+                  href="/cert"
+                  className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-slate-950 font-bold text-xs flex items-center gap-1.5 transition-all"
+                >
+                  인증·마크 조회 <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+                {/* 마크 발급은 업체 단위 동선이라 인증 업체 목록(/cert)의 각 업체 행에서만 진입한다.
+                    업체를 고르지 않은 채 들어오는 입구는 두지 않는다. */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setReviewNotice(true);
+                    setTimeout(() => setReviewNotice(false), 2500);
+                  }}
+                  className={`px-4 py-2.5 rounded-xl border font-bold text-xs flex items-center gap-1.5 transition-all ${
+                    reviewNotice
+                      ? 'bg-slate-800 border-white/20 text-slate-400 cursor-default'
+                      : 'bg-slate-900/70 hover:bg-slate-800 border-white/10 text-slate-200'
+                  }`}
+                >
+                  {reviewNotice ? (
+                    <>
+                      <Clock className="w-3.5 h-3.5" /> 추후 지원 예정
+                    </>
+                  ) : (
+                    '심사 포털'
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -183,7 +261,7 @@ export default function HomePage() {
             <div>
               <h2 className="text-2xl font-bold text-white flex items-center gap-2">
                 <Shirt className="w-6 h-6 text-emerald-400" />
-                발급된 패션 완제품 여권 (Fashion DPPs)
+                최근 발급된 패션 DPP
               </h2>
               <p className="text-xs text-slate-400">
                 실제 QR 스캔 또는 상세 보기를 통해 소비자와 인증기관 뷰를 체험할 수 있습니다.
@@ -194,29 +272,30 @@ export default function HomePage() {
               href="/manufacturer"
               className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 self-start sm:self-auto transition-all"
             >
-              <QrCode className="w-4 h-4" />
-              신규 의류 DPP 등록
+              더보기
+              <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
 
+          {/* 메인은 최신 4건만 — 전체 목록은 /manufacturer 가 검색·필터와 함께 담당한다 */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {passports.map((passport) => (
+            {passports.slice(0, HOME_CARD_LIMIT).map((passport) => (
               <div
                 key={passport.id}
-                className="glass-panel rounded-2xl p-5 border border-white/10 hover:border-emerald-500/30 transition-all flex flex-col sm:flex-row gap-5 group"
+                className="glass-panel rounded-2xl p-5 border border-white/10 hover:border-emerald-500/30 transition-all flex flex-col sm:flex-row gap-5"
               >
-                {/* 상품 이미지 */}
-                <div className="w-full sm:w-44 h-48 rounded-xl overflow-hidden bg-slate-800 relative shrink-0">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={passport.image_url}
-                    alt={passport.product_name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=1000&q=80';
-                    }}
+                {/* DPP 데이터캐리어 — 실제 제품에 부착되는 QR 그대로. 스캔하면 소비자 여권으로 간다. */}
+                <div className="w-full sm:w-44 h-48 rounded-xl paper relative shrink-0 flex flex-col items-center justify-center gap-2 p-3">
+                  <QRCodeSVG
+                    value={`${dppOrigin}/p?id=${passport.id}`}
+                    size={112}
+                    level="M"
+                    includeMargin={false}
                   />
-                  <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-slate-950/80 backdrop-blur-sm text-[10px] font-bold text-emerald-400 border border-emerald-500/30">
+                  <p className="text-[9px] font-bold text-slate-500 text-center leading-tight">
+                    스캔하여 소비자 여권 열기
+                  </p>
+                  <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-slate-950/90 text-[10px] font-bold text-emerald-400 border border-emerald-500/30">
                     에코스코어 {passport.eco_scores.overallScore}점
                   </div>
                 </div>
@@ -285,7 +364,7 @@ export default function HomePage() {
             <div>
               <h2 className="text-2xl font-bold text-white flex items-center gap-2">
                 <Layers className="w-6 h-6 text-sky-400" />
-                원단 공급사 등록 소재 (Fabric DPPs)
+                최근 등록된 원단 DPP
               </h2>
               <p className="text-xs text-slate-400">
                 패션 제조사가 제품 DPP 생성 시 직접 연동하여 사용할 수 있는 원단 고유 ID 목록입니다.
@@ -296,13 +375,14 @@ export default function HomePage() {
               href="/fabric-supplier"
               className="px-4 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 self-start sm:self-auto transition-all"
             >
-              <Layers className="w-4 h-4" />
-              신규 원단 소재 등록
+              더보기
+              <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
 
+          {/* 메인은 최신 4건만 — 전체 목록은 /fabric-supplier 가 검색·필터와 함께 담당한다 */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {fabrics.map((fabric) => (
+            {fabrics.slice(0, HOME_CARD_LIMIT).map((fabric) => (
               <div
                 key={fabric.id}
                 className="glass-panel rounded-2xl p-6 border border-white/10 hover:border-sky-500/30 transition-all flex flex-col justify-between"
@@ -358,7 +438,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* QR 모달 */}
+      {/* QR 라벨 생성 모달 (발급자용) */}
       {selectedPassportForQR && (
         <QRGeneratorModal
           passport={selectedPassportForQR}
@@ -366,6 +446,9 @@ export default function HomePage() {
           onClose={() => setSelectedPassportForQR(null)}
         />
       )}
+
+      {/* QR 스캔 체험 모달 (소비자용) — 헤더 'QR 스캔 데모'와 동일한 모달 */}
+      <QRScannerModal isOpen={isScannerOpen} onClose={() => setIsScannerOpen(false)} />
     </div>
   );
 }

@@ -3,23 +3,69 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { 
-  ShieldCheck, 
-  QrCode, 
-  Layers, 
-  Shirt, 
-  FileCheck, 
-  Sparkles, 
+import {
+  ShieldCheck,
+  QrCode,
+  Layers,
+  Shirt,
   ScanLine,
-  Database,
-  ExternalLink
+  BadgeCheck
 } from 'lucide-react';
 import { QRScannerModal } from './QRScannerModal';
+import { BrandMark } from './BrandMark';
+import { ThemeToggle } from './ThemeToggle';
 
 interface HeaderProps {
   currentRole?: string;
   onRoleChange?: (role: string) => void;
 }
+
+interface NavItem {
+  href: string;
+  label: string;
+  icon?: React.ComponentType<{ className?: string }>;
+  /** 아이콘 대신 이미지를 쓰는 경우 (국산 섬유제품 인증마크) */
+  iconSrc?: string;
+  /** 활성 판정. 경로가 서로 접두사 관계인 경우를 정확히 구분한다. */
+  match: (pathname: string) => boolean;
+}
+
+/**
+ * 역할별 포털 네비게이션.
+ *
+ * '소비자'는 콘솔이 없다 — 제품 라벨의 QR을 스캔해 /p?id=... 로 바로 들어오는 것이
+ * 실제 동선이고, 그 진입점은 우측 'QR 스캔 데모' 버튼이 담당한다.
+ * 특정 제품 하나를 네비에 고정하면 그 제품이 '소비자 메뉴'인 것처럼 보여 오해를 준다.
+ */
+const NAV_ITEMS: NavItem[] = [
+  {
+    href: '/cert',
+    label: '국산인증',
+    // 섬산련 국산 섬유제품 인증마크 메인 SYMBOL
+    iconSrc: '/marks/korea-mark-symbol.png',
+    match: (p) => p === '/cert' || p === '/cert-register' || p === '/cert-review' || p === '/cert-mark'
+  },
+  {
+    href: '/manufacturer',
+    label: '패션 DPP',
+    icon: QrCode,
+    match: (p) => p === '/manufacturer'
+  },
+  {
+    href: '/fabric-supplier',
+    label: '원단 DPP',
+    icon: Layers,
+    // '/fabric'(원단 상세)과 '/fabric-supplier'를 모두 이 메뉴로 묶되,
+    // startsWith('/fabric')만 쓰면 무관한 경로까지 활성화되므로 명시적으로 판정한다.
+    match: (p) => p === '/fabric-supplier' || p === '/fabric' || p.startsWith('/fabric/')
+  },
+  {
+    href: '/verifier',
+    label: '검증·규제기관',
+    icon: ShieldCheck,
+    match: (p) => p === '/verifier'
+  }
+];
 
 export const Header: React.FC<HeaderProps> = ({ currentRole = 'consumer', onRoleChange }) => {
   const pathname = usePathname();
@@ -29,6 +75,7 @@ export const Header: React.FC<HeaderProps> = ({ currentRole = 'consumer', onRole
     { id: 'consumer', name: '일반 소비자', icon: Shirt, badge: 'Public QR View' },
     { id: 'manufacturer', name: '패션 제조사', icon: QrCode, badge: 'DPP 발급' },
     { id: 'fabric_supplier', name: '원단 공급사', icon: Layers, badge: '소재 등록' },
+    { id: 'cert_auditor', name: '인증 심사원', icon: BadgeCheck, badge: '국산인증 심사' },
     { id: 'verifier', name: '국가·검증기관', icon: ShieldCheck, badge: '심층 감사' },
   ];
 
@@ -52,15 +99,15 @@ export const Header: React.FC<HeaderProps> = ({ currentRole = 'consumer', onRole
             {/* 로고 & 슬로건 */}
             <div className="flex items-center gap-6">
               <Link href="/" className="flex items-center gap-3 group">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-sky-500 p-0.5 shadow-lg shadow-emerald-500/20 group-hover:shadow-emerald-500/40 transition-all">
-                  <div className="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center">
-                    <Sparkles className="w-5 h-5 text-emerald-400" />
-                  </div>
+                {/* kDPP 자체 심볼. 섬산련 인증마크는 '인증을 표시하는 자리'에서만 쓴다 —
+                    서비스 로고로 걸면 kDPP 가 인증기관인 것처럼 읽힌다. */}
+                <div className="w-10 h-10 flex items-center justify-center transition-transform group-hover:scale-105">
+                  <BrandMark size={36} />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="font-extrabold text-xl tracking-tight bg-gradient-to-r from-white via-slate-200 to-emerald-400 bg-clip-text text-transparent">
-                      GoDPP
+                      kDPP
                     </span>
                     <span className="px-1.5 py-0.5 text-[9px] font-black tracking-wider uppercase bg-amber-500/15 text-amber-400 border border-amber-500/30 rounded-md">
                       DEMO
@@ -77,55 +124,39 @@ export const Header: React.FC<HeaderProps> = ({ currentRole = 'consumer', onRole
 
               {/* 주요 메뉴 */}
               <nav className="hidden md:flex items-center gap-1 pl-4 border-l border-white/10 text-sm font-medium">
-                <Link
-                  href="/p?id=DPP-2026-JKT-0042"
-                  className={`px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 ${
-                    pathname.startsWith('/p')
-                      ? 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/20'
-                      : 'text-slate-300 hover:text-white hover:bg-white/5'
-                  }`}
-                >
-                  <Shirt className="w-4 h-4" />
-                  소비자 여권
-                </Link>
-                <Link
-                  href="/manufacturer"
-                  className={`px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 ${
-                    pathname === '/manufacturer'
-                      ? 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/20'
-                      : 'text-slate-300 hover:text-white hover:bg-white/5'
-                  }`}
-                >
-                  <QrCode className="w-4 h-4" />
-                  패션 제조사
-                </Link>
-                <Link
-                  href="/fabric-supplier"
-                  className={`px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 ${
-                    pathname.startsWith('/fabric')
-                      ? 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/20'
-                      : 'text-slate-300 hover:text-white hover:bg-white/5'
-                  }`}
-                >
-                  <Layers className="w-4 h-4" />
-                  원단 업체
-                </Link>
-                <Link
-                  href="/verifier"
-                  className={`px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 ${
-                    pathname === '/verifier'
-                      ? 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/20'
-                      : 'text-slate-300 hover:text-white hover:bg-white/5'
-                  }`}
-                >
-                  <ShieldCheck className="w-4 h-4" />
-                  검증·규제기관
-                </Link>
+                {NAV_ITEMS.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = item.match(pathname);
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      title={item.label}
+                      className={`px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 ${
+                        isActive
+                          ? 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/20'
+                          : 'text-slate-300 hover:text-white hover:bg-white/5'
+                      }`}
+                    >
+                      {item.iconSrc ? (
+                        // 마크는 흰 바탕에 인쇄되는 것이 원칙이라 다크 네비에서도 흰 칩 위에 올린다
+                        <span className="w-4 h-4 shrink-0 rounded-[3px] paper flex items-center justify-center p-px">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={item.iconSrc} alt="" className="w-full h-full object-contain" />
+                        </span>
+                      ) : Icon ? (
+                        <Icon className="w-4 h-4 shrink-0" />
+                      ) : null}
+                      <span className="whitespace-nowrap">{item.label}</span>
+                    </Link>
+                  );
+                })}
               </nav>
             </div>
 
             {/* 우측 빠른 시연 도구 & QR 카메라 스캐너 */}
             <div className="flex items-center gap-3">
+              <ThemeToggle />
               <button
                 onClick={() => setIsScannerOpen(true)}
                 className="px-3 py-1.5 rounded-lg bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/30 text-sky-400 text-xs font-semibold flex items-center gap-1.5 shadow-sm transition-all active:scale-95"

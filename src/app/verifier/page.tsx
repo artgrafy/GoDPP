@@ -3,21 +3,22 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Header } from '@/components/Header';
-import { getPassports, getFabrics, getAuditLogs } from '@/lib/supabase';
+import Link from 'next/link';
+import { getPassports, getFabrics, getAuditLogs, getCertifications } from '@/lib/supabase';
 import { FashionDPP, FabricDPP, AuditLog } from '@/types/dpp';
+import type { DomesticCertification } from '@/types/domesticCert';
 import { DeepDataModal } from '@/components/DeepDataModal';
-import { 
-  ShieldCheck, 
-  FileText, 
-  Search, 
-  Lock, 
-  Download, 
-  Building, 
-  CheckCircle2, 
-  Activity, 
+import {
+  ShieldCheck,
+  FileText,
+  Search,
+  Lock,
+  Building,
+  CheckCircle2,
   History,
-  ExternalLink,
-  Cpu
+  Cpu,
+  BadgeCheck,
+  ArrowRight
 } from 'lucide-react';
 
 export default function VerifierPortalPage() {
@@ -25,18 +26,25 @@ export default function VerifierPortalPage() {
   const [passports, setPassports] = useState<FashionDPP[]>([]);
   const [fabrics, setFabrics] = useState<FabricDPP[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
+  const [certs, setCerts] = useState<DomesticCertification[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedPassportForDeep, setSelectedPassportForDeep] = useState<FashionDPP | null>(null);
 
   useEffect(() => {
     async function load() {
-      const [p, f] = await Promise.all([getPassports(), getFabrics()]);
+      const [p, f, c] = await Promise.all([getPassports(), getFabrics(), getCertifications()]);
       setPassports(p);
       setFabrics(f);
+      setCerts(c);
       setAuditLogs(getAuditLogs());
     }
     load();
   }, []);
+
+  const issuedCount = certs.filter((c) => c.status === 'issued').length;
+  const pendingCount = certs.filter((c) =>
+    ['submitted', 'under_review', 'approved'].includes(c.status)
+  ).length;
 
   const filteredPassports = passports.filter(
     (p) =>
@@ -72,8 +80,8 @@ export default function VerifierPortalPage() {
           </div>
         </div>
 
-        {/* 4대 규제 검증 지표 요약 카드 */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* 규제 검증 지표 요약 카드 */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           <div className="p-5 rounded-2xl glass-panel border border-white/10">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs text-slate-400">감사 대상 완제품 DPP</span>
@@ -109,7 +117,49 @@ export default function VerifierPortalPage() {
             <div className="text-2xl font-bold text-white">100%</div>
             <span className="text-[11px] text-amber-400 mt-1 block">DID 서명 검증 완료</span>
           </div>
+
+          <Link
+            href="/cert-review"
+            className="p-5 rounded-2xl glass-panel border border-white/10 hover:border-emerald-500/40 transition-all group"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-slate-400">국산인증 계약업체</span>
+              <BadgeCheck className="w-4 h-4 text-emerald-400" />
+            </div>
+            <div className="text-2xl font-bold text-white">
+              {issuedCount}<span className="text-sm font-medium text-slate-400">개사</span>
+            </div>
+            <span className="text-[11px] text-emerald-400 mt-1 flex items-center gap-1 group-hover:gap-1.5 transition-all">
+              심사 대기 {pendingCount}건 · 심사 포털 열기
+              <ArrowRight className="w-3 h-3" />
+            </span>
+          </Link>
         </div>
+
+        {/* 심사 대기 건 알림 */}
+        {pendingCount > 0 && (
+          <Link
+            href="/cert-review"
+            className="block p-4 rounded-2xl glass-panel-emerald border border-emerald-500/30 hover:border-emerald-500/50 transition-all"
+          >
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-emerald-500/20 text-emerald-400 shrink-0">
+                  <BadgeCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-white">
+                    국산 섬유제품 업체 인증 심사 대기 {pendingCount}건
+                  </h4>
+                  <p className="text-[11px] text-slate-300">
+                    서류심사 → 현장심사 → 적격성 검토 → 계약체결을 거쳐 인증서·확인서를 발급합니다.
+                  </p>
+                </div>
+              </div>
+              <ArrowRight className="w-4 h-4 text-emerald-400 shrink-0" />
+            </div>
+          </Link>
+        )}
 
         {/* 규제 감사 목록 & 검색 */}
         <div className="glass-panel rounded-3xl border border-white/10 overflow-hidden">

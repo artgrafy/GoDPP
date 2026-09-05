@@ -1,9 +1,12 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter, useSearchParams, useParams } from 'next/navigation';
-import { getPassportById } from '@/lib/supabase';
+import { getPassportById, getCertForCompany } from '@/lib/supabase';
 import { FashionDPP } from '@/types/dpp';
+import type { DomesticCertification, MarkIssue, ProcessDetail, ProcessKey } from '@/types/domesticCert';
+import { summarizeDomesticProcesses } from '@/lib/domesticCert';
+import { DomesticProcessCard } from '@/components/cert/DomesticProcessCard';
 import { Header } from '@/components/Header';
 import { SupplyChainTimeline } from '@/components/SupplyChainTimeline';
 import { LcaRadarChart } from '@/components/LcaRadarChart';
@@ -41,6 +44,8 @@ export function PassportDetailClient({ passportId: propPassportId }: { passportI
   const passportId = typeof rawId === 'string' ? decodeURIComponent(rawId).trim() : '';
 
   const [passport, setPassport] = useState<FashionDPP | null>(null);
+  // 제조사(업체)의 국산인증. 제품에 붙는 것이 아니라 참고 정보로만 보여준다.
+  const [makerCert, setMakerCert] = useState<DomesticCertification | null>(null);
   const [loading, setLoading] = useState(true);
   const [isDeepDataOpen, setIsDeepDataOpen] = useState(false);
   const [isQROpen, setIsQROpen] = useState(false);
@@ -56,8 +61,13 @@ export function PassportDetailClient({ passportId: propPassportId }: { passportI
       setLoading(true);
       try {
         const data = await getPassportById(passportId);
+        // 국산인증은 업체에 발행되므로 제품 ID가 아니라 소유 업체로 조회한다.
+        const cert = data
+          ? await getCertForCompany({ companyId: data.company_id, companyName: data.brand_name })
+          : null;
         if (isMounted) {
           setPassport(data);
+          setMakerCert(cert);
         }
       } catch (err) {
         console.error('[GoDPP] Load passport detail failed:', err);
@@ -72,6 +82,27 @@ export function PassportDetailClient({ passportId: propPassportId }: { passportI
       isMounted = false;
     };
   }, [passportId]);
+
+  const processSummary = useMemo(
+    () =>
+      passport
+        ? summarizeDomesticProcesses({
+            subjectType: 'passport',
+            passport,
+            fabric: passport.fabric_snapshot ?? null
+          })
+        : null,
+    [passport]
+  );
+
+  // 원단(상속)과 완제품(봉제)의 공정 수행업체 정보를 병합한다.
+  const processDetails = useMemo<Partial<Record<ProcessKey, ProcessDetail>>>(() => {
+    if (!passport) return {};
+    return {
+      ...(passport.fabric_snapshot?.domestic_origin?.processes ?? {}),
+      ...(passport.domestic_origin?.processes ?? {})
+    };
+  }, [passport]);
 
   const handleShare = () => {
     if (typeof window !== 'undefined') {
@@ -227,7 +258,18 @@ export function PassportDetailClient({ passportId: propPassportId }: { passportI
           </button>
         </div>
 
-        {/* 3. 소재 구성 및 연계 원단 (Material & Fabric) */}
+        {/* 3. 국산 공정 이력 (인증이 아니라 이 제품이 실제로 보유한 공정 데이터) */}
+        {processSummary && (
+          <DomesticProcessCard
+            summary={processSummary}
+            subjectType="passport"
+            processDetails={processDetails}
+            manufacturerCert={makerCert}
+            manufacturerName={passport.brand_name}
+          />
+        )}
+
+        {/* 4. 소재 구성 및 연계 원단 (Material & Fabric) */}
         <div className="glass-panel p-6 rounded-3xl border border-white/10 space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-base font-bold text-white flex items-center gap-2">

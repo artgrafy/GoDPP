@@ -1,27 +1,39 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Header } from '@/components/Header';
-import { getPassports, getFabrics, savePassport } from '@/lib/supabase';
+import { FilterPills, FilterSelect, ListToolbar } from '@/components/ListToolbar';
+import {
+  getPassports,
+  getFabrics,
+  savePassport,
+  findOrCreateCompany
+} from '@/lib/supabase';
 import { FashionDPP, FabricDPP } from '@/types/dpp';
+import type { TriState } from '@/types/domesticCert';
+import { PROCESS_LABEL, summarizeDomesticProcesses } from '@/lib/domesticCert';
 import { QRGeneratorModal } from '@/components/QRGeneratorModal';
-import { 
-  QrCode, 
-  Plus, 
-  Layers, 
-  Shirt, 
-  Sparkles, 
-  CheckCircle2, 
-  ExternalLink, 
+import {
+  QrCode,
+  Plus,
+  Layers,
+  Shirt,
+  Sparkles,
+  CheckCircle2,
+  ExternalLink,
   Building2,
-  Trash2,
   Save,
   ArrowRight,
   UploadCloud,
   ImageIcon,
   RefreshCw,
-  X
+  X,
+  AlertTriangle,
+  BadgeCheck,
+  CircleHelp,
+  XCircle,
+  Factory
 } from 'lucide-react';
 
 const CATEGORY_OPTIONS = [
@@ -65,6 +77,12 @@ export default function ManufacturerDashboard() {
   const [saving, setSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
 
+  // 목록 필터
+  const [listQuery, setListQuery] = useState('');
+  const [listBrand, setListBrand] = useState('');
+  const [listSeason, setListSeason] = useState('');
+  const [listFabricLink, setListFabricLink] = useState('');
+
   // 카테고리 & 시즌 선택 상태
   const [selectedCategoryOption, setSelectedCategoryOption] = useState(CATEGORY_OPTIONS[0]);
   const [customCategory, setCustomCategory] = useState('');
@@ -82,18 +100,26 @@ export default function ManufacturerDashboard() {
     totalCarbonKg: 7.2,
     repairabilityScore: 9.0,
     recyclabilityRate: 90,
+    // 봉제 공정 (완제품이 직접 선언하는 유일한 공정). 기본값은 '미확인'.
+    isDomesticSewing: null as TriState,
+    sewingCompany: '',
+    sewingLocation: ''
   });
 
+  async function refresh() {
+    const [p, f] = await Promise.all([getPassports(), getFabrics()]);
+    setPassports(p);
+    setFabrics(f);
+    return f;
+  }
+
   useEffect(() => {
-    async function load() {
-      const [p, f] = await Promise.all([getPassports(), getFabrics()]);
-      setPassports(p);
-      setFabrics(f);
+    (async () => {
+      const f = await refresh();
       if (f.length > 0) {
-        setFormData((prev) => ({ ...prev, selected_fabric_id: f[0].id }));
+        setFormData((prev) => ({ ...prev, selected_fabric_id: prev.selected_fabric_id || f[0].id }));
       }
-    }
-    load();
+    })();
   }, []);
 
   // 이미지 파일 업로드 & 브라우저 캔버스 최적화 압축
@@ -156,8 +182,15 @@ export default function ManufacturerDashboard() {
       const categoryTag = finalCategory.split(' ')[0].replace(/[^a-zA-Z]/g, '').slice(0, 3).toUpperCase() || 'APP';
       const newId = `DPP-2026-${categoryTag}-${Math.floor(1000 + Math.random() * 9000)}`;
 
+      // 브랜드를 업체 마스터에 연결한다(없으면 생성). brand_name 은 표기 스냅샷으로 남는다.
+      const master = await findOrCreateCompany({
+        name: formData.brand_name,
+        role: 'manufacturer'
+      });
+
       const newPassport: FashionDPP = {
         id: newId,
+        company_id: master.id,
         product_name: formData.product_name,
         brand_name: formData.brand_name,
         category: finalCategory,
@@ -219,9 +252,10 @@ export default function ManufacturerDashboard() {
           {
             step: 'Tier 1: 완제품 패턴 봉제 및 품질 검사',
             tier: 'Tier-1',
-            companyName: '아크테라 스마트 에코 팩토리',
-            location: '부산광역시 강서구',
-            country: 'KR',
+            // 폼에서 입력받은 봉제 공장을 그대로 쓴다 (입력값과 타임라인이 어긋나지 않게).
+            companyName: formData.sewingCompany.trim() || '아크테라 스마트 에코 팩토리',
+            location: formData.sewingLocation.trim() || '부산광역시 강서구',
+            country: formData.isDomesticSewing === false ? 'FOREIGN' : 'KR',
             certifications: ['SA8000', 'ISO 14001'],
             processDate: '2026-03-01',
             verified: true
@@ -240,12 +274,23 @@ export default function ManufacturerDashboard() {
           verifierSignature: `SIG_ED25519_KR_ECOLABEL_2026_${Math.floor(1000 + Math.random()*9000)}`,
           verifierOrg: '한국환경산업기술원(KEITI) & TÜV Rheinland',
           verificationTimestamp: new Date().toISOString()
+        },
+        // 원사/제직/염가공은 연동 원단에서 상속되고, 완제품은 봉제만 선언한다.
+        domestic_origin: {
+          is_domestic_sewing: formData.isDomesticSewing,
+          processes: formData.sewingCompany.trim()
+            ? {
+                sewing: {
+                  companyName: formData.sewingCompany.trim(),
+                  location: formData.sewingLocation.trim() || undefined
+                }
+              }
+            : undefined
         }
       };
 
       await savePassport(newPassport);
-      const updated = await getPassports();
-      setPassports(updated);
+      await refresh();
       setFormData((prev) => ({ ...prev, product_name: '', image_url: '' }));
       setIsFormOpen(false);
       setSelectedQR(newPassport);
@@ -255,6 +300,88 @@ export default function ManufacturerDashboard() {
   };
 
   const selectedFabricObj = fabrics.find((f) => f.id === formData.selected_fabric_id);
+
+  /** 저장 전에도 원단 상속 + 봉제 입력값으로 트랙을 실시간 판정한다. */
+  // 목록 필터 — 선택지는 실제 등록된 데이터에서만 뽑는다(빈 선택지를 만들지 않는다).
+  const brandOptions = useMemo(
+    () => Array.from(new Set(passports.map((p) => p.brand_name).filter(Boolean))).sort(),
+    [passports]
+  );
+  const seasonOptions = useMemo(
+    () => Array.from(new Set(passports.map((p) => p.season).filter(Boolean))).sort(),
+    [passports]
+  );
+
+  const filteredPassports = useMemo(() => {
+    const q = listQuery.trim().toLowerCase();
+    return passports.filter((p) => {
+      if (listBrand && p.brand_name !== listBrand) return false;
+      if (listSeason && p.season !== listSeason) return false;
+      if (listFabricLink === 'linked' && !p.fabric_id) return false;
+      if (listFabricLink === 'none' && p.fabric_id) return false;
+      if (!q) return true;
+      return [p.product_name, p.brand_name, p.id, p.fabric_id, p.category, p.season]
+        .filter(Boolean)
+        .some((v) => String(v).toLowerCase().includes(q));
+    });
+  }, [passports, listQuery, listBrand, listSeason, listFabricLink]);
+
+  const draftSummary = useMemo(
+    () =>
+      summarizeDomesticProcesses({
+        subjectType: 'passport',
+        fabric: selectedFabricObj ?? null,
+        passport: {
+          id: 'DRAFT',
+          product_name: formData.product_name,
+          brand_name: formData.brand_name,
+          category: '',
+          season: '',
+          manufactured_country: formData.manufactured_country,
+          image_url: '',
+          fabric_id: formData.selected_fabric_id,
+          fabric_snapshot: selectedFabricObj,
+          materials_summary: selectedFabricObj?.composition ?? [],
+          eco_scores: {
+            overallScore: 0,
+            carbonRating: 'A',
+            totalCarbonKg: 0,
+            durabilityIndex: 0,
+            repairabilityScore: 0,
+            recyclabilityRate: 0
+          },
+          care_instructions: [],
+          circularity_guide: {
+            repairOptions: '',
+            takeBackProgram: '',
+            recyclingGuideline: '',
+            estimatedLifespanYears: 0
+          },
+          supply_chain_journey: [],
+          deep_compliance_data: {
+            lcaMethodology: '',
+            scope1EmissionsKg: 0,
+            scope2EmissionsKg: 0,
+            scope3EmissionsKg: 0,
+            svhcChemicalStatus: '',
+            tariffsCode: '',
+            customsDeclarationId: '',
+            verifierSignature: '',
+            verifierOrg: '',
+            verificationTimestamp: ''
+          },
+          domestic_origin: { is_domestic_sewing: formData.isDomesticSewing }
+        }
+      }),
+    [
+      selectedFabricObj,
+      formData.isDomesticSewing,
+      formData.selected_fabric_id,
+      formData.product_name,
+      formData.brand_name,
+      formData.manufactured_country
+    ]
+  );
 
   return (
     <div className="min-h-screen bg-slate-950 pb-20">
@@ -268,7 +395,7 @@ export default function ManufacturerDashboard() {
               <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
                 <QrCode className="w-5 h-5" />
               </div>
-              <h1 className="text-2xl font-black text-white">패션 제조사 DPP 관리 콘솔</h1>
+              <h1 className="text-2xl font-black text-white">패션 DPP 관리</h1>
             </div>
             <p className="text-xs text-slate-400">
               원단 공급망(Tier-2)을 연동하여 완제품 디지털 제품 여권 및 2D QR 라벨을 발급합니다.
@@ -285,7 +412,7 @@ export default function ManufacturerDashboard() {
             }}
             className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-slate-950 font-bold text-xs flex items-center gap-2 shadow-lg shadow-emerald-500/20 transition-all self-start sm:self-auto"
           >
-            {isFormOpen ? '등록 폼 닫기' : <><Plus className="w-4 h-4" /> 신규 패션 DPP 발급</>}
+            {isFormOpen ? '등록 폼 닫기' : <><Plus className="w-4 h-4" /> 신규 패션 DPP 등록</>}
           </button>
         </div>
 
@@ -551,6 +678,119 @@ export default function ManufacturerDashboard() {
                   )}
                 </div>
 
+                {/* 국산 섬유제품 인증 — 상속된 원단 공정 + 봉제 공정 선언 */}
+                <div className="p-4 rounded-2xl bg-slate-900/90 border border-emerald-500/20 space-y-3">
+                  <label className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
+                    <BadgeCheck className="w-4 h-4" />
+                    국산 섬유제품 인증 공정 이력
+                  </label>
+
+                  {/* 원단에서 상속 (읽기 전용) */}
+                  <div className="p-3 rounded-xl bg-slate-950 border border-white/5">
+                    <p className="text-[10px] text-slate-500 font-bold mb-1.5">
+                      연동 원단에서 상속된 공정 (읽기 전용)
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {(['yarn', 'weaving', 'dyeing'] as const).map((stage) => {
+                        const v = draftSummary.processes[stage];
+                        return (
+                          <span
+                            key={stage}
+                            className={`inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                              v === true
+                                ? 'bg-emerald-500/15 text-emerald-300'
+                                : v === false
+                                  ? 'bg-rose-500/15 text-rose-300'
+                                  : 'bg-slate-700/40 text-slate-400'
+                            }`}
+                          >
+                            {v === true ? (
+                              <CheckCircle2 className="w-2.5 h-2.5" />
+                            ) : v === false ? (
+                              <XCircle className="w-2.5 h-2.5" />
+                            ) : (
+                              <CircleHelp className="w-2.5 h-2.5" />
+                            )}
+                            {PROCESS_LABEL[stage]}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* 봉제 공정 (완제품이 선언) */}
+                  <div className="p-3 rounded-xl bg-slate-950 border border-white/5 space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[11px] font-bold text-slate-200">
+                        {PROCESS_LABEL.sewing} 공정 (완제품)
+                      </span>
+                      <div className="inline-flex rounded-lg border border-slate-700/60 overflow-hidden shrink-0">
+                        {(
+                          [
+                            { v: true as TriState, label: '국내', active: 'bg-emerald-500 text-slate-950' },
+                            { v: false as TriState, label: '국외', active: 'bg-rose-500 text-slate-950' },
+                            { v: null as TriState, label: '미확인', active: 'bg-slate-600 text-slate-100' }
+                          ]
+                        ).map((opt) => (
+                          <button
+                            key={String(opt.v)}
+                            type="button"
+                            role="radio"
+                            aria-checked={formData.isDomesticSewing === opt.v}
+                            onClick={() => setFormData({ ...formData, isDomesticSewing: opt.v })}
+                            className={`px-2 py-1 text-[10px] font-bold border-r border-slate-700/60 last:border-r-0 transition-all ${
+                              formData.isDomesticSewing === opt.v
+                                ? opt.active
+                                : 'bg-slate-900/60 text-slate-400 hover:text-slate-200'
+                            }`}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <input
+                        type="text"
+                        value={formData.sewingCompany}
+                        onChange={(e) => setFormData({ ...formData, sewingCompany: e.target.value })}
+                        placeholder="봉제 공장명"
+                        className="glass-input px-2.5 py-1.5 rounded-lg text-[11px]"
+                      />
+                      <input
+                        type="text"
+                        value={formData.sewingLocation}
+                        onChange={(e) => setFormData({ ...formData, sewingLocation: e.target.value })}
+                        placeholder="소재지 (예: 부산광역시 강서구)"
+                        className="glass-input px-2.5 py-1.5 rounded-lg text-[11px]"
+                      />
+                    </div>
+                  </div>
+
+                  {/* 입력 상태 요약 — 인증 판정이 아니라 '자료가 얼마나 채워졌는가'만 보여준다.
+                      국산인증은 업체 단위라 이 제품에 트랙을 부여할 수 없다. */}
+                  <div className="rounded-xl border border-slate-600/40 bg-slate-800/40 px-3 py-2.5 flex items-center gap-3">
+                    <Factory className="w-4 h-4 text-emerald-300 shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-black text-slate-100">
+                        국내 공정 {draftSummary.domesticCount} / {draftSummary.stages.length}
+                        {draftSummary.domesticRatio !== null && (
+                          <span className="ml-1.5 font-medium text-slate-400">
+                            · 국산 소재 혼용률 {draftSummary.domesticRatio}%
+                          </span>
+                        )}
+                      </p>
+                      <p className="text-[10px] text-slate-400 leading-snug mt-0.5">
+                        {!draftSummary.hasFabricLink && draftSummary.processes.weaving === null
+                          ? '연결된 원단 DPP가 없어 제직·염가공 공정을 확인할 수 없습니다.'
+                          : draftSummary.unknownCount > 0
+                            ? `미확인 ${draftSummary.unknownCount}건 — 자료가 없는 공정은 국외로 기록되지 않습니다.`
+                            : '모든 공정의 국내 생산 여부가 기록되었습니다.'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-3 gap-3">
                   <div>
                     <label className="block text-[11px] font-semibold text-slate-300 mb-1">
@@ -623,8 +863,56 @@ export default function ManufacturerDashboard() {
             <span className="text-xs text-slate-400">GS1 Digital Link URI 호환</span>
           </div>
 
+          <ListToolbar
+            query={listQuery}
+            onQueryChange={setListQuery}
+            placeholder="제품명, 브랜드, DPP ID, 연계 원단 ID로 검색"
+            shown={filteredPassports.length}
+            total={passports.length}
+          >
+            <FilterSelect
+              label="브랜드"
+              value={listBrand}
+              onChange={setListBrand}
+              options={[['', '브랜드 전체'], ...brandOptions.map((b) => [b, b] as [string, string])]}
+            />
+            <FilterSelect
+              label="시즌"
+              value={listSeason}
+              onChange={setListSeason}
+              options={[['', '시즌 전체'], ...seasonOptions.map((v) => [v, v] as [string, string])]}
+            />
+            <FilterPills
+              label="원단 연동"
+              value={listFabricLink}
+              onChange={setListFabricLink}
+              options={[
+                ['', '전체'],
+                ['linked', '원단 연동'],
+                ['none', '자체 소재']
+              ]}
+            />
+          </ListToolbar>
+
+          {filteredPassports.length === 0 && passports.length > 0 && (
+            <div className="text-center py-12 px-6">
+              <p className="text-xs text-slate-400 font-semibold">조건에 맞는 제품이 없습니다.</p>
+              <button
+                onClick={() => {
+                  setListQuery('');
+                  setListBrand('');
+                  setListSeason('');
+                  setListFabricLink('');
+                }}
+                className="mt-3 text-[11px] font-bold text-emerald-400 hover:text-emerald-300"
+              >
+                필터 초기화
+              </button>
+            </div>
+          )}
+
           <div className="divide-y divide-white/5">
-            {passports.map((p) => (
+            {filteredPassports.map((p) => (
               <div
                 key={p.id}
                 className="p-5 sm:p-6 hover:bg-white/[0.02] transition-colors flex flex-col md:flex-row items-start md:items-center justify-between gap-4"
@@ -640,7 +928,7 @@ export default function ManufacturerDashboard() {
                     }}
                   />
                   <div>
-                    <div className="flex items-center gap-2 mb-1">
+                    <div className="flex flex-wrap items-center gap-2 mb-1">
                       <span className="px-2 py-0.5 rounded text-[10px] font-bold font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
                         {p.id}
                       </span>
@@ -654,7 +942,9 @@ export default function ManufacturerDashboard() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 self-end md:self-auto shrink-0">
+                {/* 인증마크는 제품이 아니라 업체에 발행된다(섬산련 규정: "인증서·확인서 및 마크를 발행",
+                    발급 단위 천매/년). 따라서 제품 목록에서 마크를 발급하는 동선은 두지 않는다. */}
+                <div className="flex flex-wrap items-center gap-2 self-end md:self-auto shrink-0">
                   <button
                     onClick={() => setSelectedQR(p)}
                     className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1.5 transition-colors"

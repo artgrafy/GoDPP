@@ -1,14 +1,16 @@
 import { FabricDPP, FashionDPP } from '@/types/dpp';
+import type { Company, DomesticCertification, MarkIssue, TrackVerdict } from '@/types/domesticCert';
 
 export const SEED_FABRICS: FabricDPP[] = [
   {
     id: 'FAB-2026-ECO-0991',
+    company_id: 'CMP-2026-DEMO0001',
     name: '100% GRS 인증 리사이클 립스탑 나일론 3L (DWR PFAS-Free)',
     supplier_name: '(주)에코텍스틸 테크놀로지 코리아',
     supplier_country: 'KR',
     composition: [
-      { material: 'Recycled Ocean Nylon (폐어망 추출)', percentage: 70, isRecycled: true },
-      { material: 'Post-Consumer Recycled PA6', percentage: 30, isRecycled: true }
+      { material: 'Recycled Ocean Nylon (폐어망 추출)', percentage: 70, isRecycled: true, isDomestic: true },
+      { material: 'Post-Consumer Recycled PA6', percentage: 30, isRecycled: true, isDomestic: true }
     ],
     weight_gsm: 135,
     weaving_type: '3-Layer High-Density Micro Ripstop',
@@ -50,17 +52,39 @@ export const SEED_FABRICS: FabricDPP[] = [
       labReportDate: '2026-01-15',
       testingLab: 'SGS Eco-Textile Testing Lab Zurich'
     },
+    domestic_origin: {
+      is_domestic_yarn: true,
+      is_domestic_weaving: true,
+      is_domestic_dyeing: true,
+      processes: {
+        yarn: { companyName: '한신 화섬 테크 (Spinning Mill)', location: '경상북도 구미시', processDate: '2025-12-10' },
+        weaving: { companyName: '(주)에코텍스틸 테크놀로지 코리아', location: '대구광역시 달서구', processDate: '2026-01-10' },
+        dyeing: { companyName: '(주)에코텍스틸 테크놀로지 코리아', location: '대구광역시 달서구', processDate: '2026-01-18' }
+      },
+      evidence: [
+        {
+          type: 'transaction_certificate',
+          label: 'GRS 거래증명서(TC) — 리사이클 나일론 원사 투입',
+          refNo: 'TC-GRS-2026-00841',
+          issuedDate: '2025-12-12',
+          issuer: 'Control Union Certifications'
+        }
+      ]
+    },
     created_at: '2026-02-10T09:00:00Z',
     updated_at: '2026-02-10T09:00:00Z'
   },
   {
     id: 'FAB-2026-CTN-0412',
+    company_id: 'CMP-2026-DEMO0005',
     name: '100% GOTS 유기농 & 재생 코튼 셀비지 데님 (12.5 oz)',
     supplier_name: '신한 친환경 방직 주식회사',
     supplier_country: 'KR',
     composition: [
-      { material: 'GOTS Certified Organic Cotton', percentage: 75, isOrganic: true },
-      { material: 'Pre-Consumer Recycled Cotton', percentage: 25, isRecycled: true }
+      // 원면은 인도산 유기농 목화를 수입하고, 방적·제직·염색은 국내에서 수행한다.
+      // → 소재 기준 국산 혼용률은 25%지만 공정 기준 트랙(T2)은 적격. 두 지표가 다른 것을 보여주는 사례.
+      { material: 'GOTS Certified Organic Cotton', percentage: 75, isOrganic: true, isDomestic: false },
+      { material: 'Pre-Consumer Recycled Cotton', percentage: 25, isRecycled: true, isDomestic: true }
     ],
     weight_gsm: 380,
     weaving_type: 'Right Hand Twill Selvedge Denim',
@@ -95,6 +119,26 @@ export const SEED_FABRICS: FabricDPP[] = [
       labReportDate: '2026-01-20',
       testingLab: 'FITi Testing & Research Institute Korea'
     },
+    domestic_origin: {
+      is_domestic_yarn: true,
+      is_domestic_weaving: true,
+      is_domestic_dyeing: true,
+      processes: {
+        yarn: { companyName: '신한 친환경 방직 주식회사', location: '충청남도 천안시', processDate: '2025-11-20' },
+        weaving: { companyName: '한국 데님 마이스터 팩토리', location: '전라북도 전주시', processDate: '2025-12-22' },
+        dyeing: { companyName: '한국 데님 마이스터 팩토리', location: '전라북도 전주시', processDate: '2026-01-05' }
+      },
+      evidence: [
+        {
+          type: 'transaction_certificate',
+          label: 'GOTS 거래증명서(TC) — 유기농 원면 수입 및 국내 방적',
+          refNo: 'TC-GOTS-2025-11204',
+          issuedDate: '2025-11-25',
+          issuer: 'Ecocert Greenlife'
+        }
+      ],
+      note: '원면은 인도산 GOTS 유기농 목화 수입, 방적 이후 전 공정 국내 수행'
+    },
     created_at: '2026-02-12T10:30:00Z',
     updated_at: '2026-02-12T10:30:00Z'
   }
@@ -103,6 +147,7 @@ export const SEED_FABRICS: FabricDPP[] = [
 export const SEED_PASSPORTS: FashionDPP[] = [
   {
     id: 'DPP-2026-JKT-0042',
+    company_id: 'CMP-2026-DEMO0002',
     product_name: '아크테라 테크 에코 쉘 3L 하드쉘 자켓',
     brand_name: 'ARCTERA Sustainability (아크테라)',
     category: 'Outerwear (기능성 아웃도어)',
@@ -112,9 +157,9 @@ export const SEED_PASSPORTS: FashionDPP[] = [
     fabric_id: 'FAB-2026-ECO-0991',
     fabric_snapshot: SEED_FABRICS[0],
     materials_summary: [
-      { material: 'GRS Recycled Ocean Nylon (메인 원단)', percentage: 88, isRecycled: true },
-      { material: 'Recycled TPU Membrane (투습 방수 멤브레인)', percentage: 8, isRecycled: true },
-      { material: 'Recycled Poly YKK Natulon 지퍼 & 심실링 테이프', percentage: 4, isRecycled: true }
+      { material: 'GRS Recycled Ocean Nylon (메인 원단)', percentage: 88, isRecycled: true, isDomestic: true },
+      { material: 'Recycled TPU Membrane (투습 방수 멤브레인)', percentage: 8, isRecycled: true, isDomestic: true },
+      { material: 'Recycled Poly YKK Natulon 지퍼 & 심실링 테이프', percentage: 4, isRecycled: true, isDomestic: true }
     ],
     eco_scores: {
       overallScore: 94,
@@ -203,11 +248,23 @@ export const SEED_PASSPORTS: FashionDPP[] = [
       verifierOrg: '한국환경산업기술원(KEITI) & TÜV Rheinland Korea',
       verificationTimestamp: '2026-02-28T14:22:00Z'
     },
+    // 원사/제직/염가공은 FAB-2026-ECO-0991에서 상속된다. 봉제만 완제품이 선언한다. → T3
+    domestic_origin: {
+      is_domestic_sewing: true,
+      processes: {
+        sewing: {
+          companyName: '아크테라 스마트 팩토리 No.1',
+          location: '부산광역시 강서구',
+          processDate: '2026-02-15'
+        }
+      }
+    },
     created_at: '2026-03-01T10:00:00Z',
     updated_at: '2026-03-01T10:00:00Z'
   },
   {
     id: 'DPP-2026-DNM-0188',
+    company_id: 'CMP-2026-DEMO0003',
     product_name: '오가닉 서큘러 셀비지 데님 팬츠 (Straight Fit)',
     brand_name: 'BLUE REVOLUTION Studio',
     category: 'Denim (데님/팬츠)',
@@ -217,8 +274,8 @@ export const SEED_PASSPORTS: FashionDPP[] = [
     fabric_id: 'FAB-2026-CTN-0412',
     fabric_snapshot: SEED_FABRICS[1],
     materials_summary: [
-      { material: 'GOTS Organic Cotton', percentage: 75, isOrganic: true },
-      { material: 'Pre-Consumer Recycled Cotton', percentage: 25, isRecycled: true }
+      { material: 'GOTS Organic Cotton', percentage: 75, isOrganic: true, isDomestic: false },
+      { material: 'Pre-Consumer Recycled Cotton', percentage: 25, isRecycled: true, isDomestic: true }
     ],
     eco_scores: {
       overallScore: 91,
@@ -292,7 +349,324 @@ export const SEED_PASSPORTS: FashionDPP[] = [
       verifierOrg: 'FITI 시험연구원 & SGS Korea',
       verificationTimestamp: '2026-02-25T11:00:00Z'
     },
+    // 원사/제직/염가공은 FAB-2026-CTN-0412에서 상속. 봉제 국내 → T3.
+    // 단 소재 기준 국산 혼용률은 25%(원면 인도산)로, 트랙 판정과 혼용률이 별개임을 보여준다.
+    domestic_origin: {
+      is_domestic_sewing: true,
+      processes: {
+        sewing: {
+          companyName: '블루 레볼루션 아틀리에',
+          location: '서울특별시 성동구 성수동',
+          processDate: '2026-02-18'
+        }
+      }
+    },
     created_at: '2026-03-02T11:00:00Z',
     updated_at: '2026-03-02T11:00:00Z'
+  }
+];
+
+// ==============================================================================
+// 국산 섬유제품 인증 시드 (업체 단위)
+//
+// 인증번호는 'D' 네임스페이스를 쓴다 — 실제 채번(next_kofoti_cert_seq)은 숫자만
+// 만들어내므로 데모 시드와 구조적으로 충돌하지 않는다.
+// 업종 분포는 원본 보고서(패션1·학생복66·운동복27·침구류6·직물류21·기타2)를 반영해
+// 학생복 업체를 심사 대기 건으로 넣었다.
+// ==============================================================================
+
+const TWO_YEARS = (fromISO: string) => {
+  const d = new Date(fromISO);
+  d.setFullYear(d.getFullYear() + 2);
+  return d.toISOString();
+};
+
+/**
+ * 업체 마스터 시드.
+ * 원단/완제품/인증은 이름이 아니라 이 id(company_id)로 묶인다 — 이름은 공백 하나에 깨진다.
+ */
+export const SEED_COMPANIES: Company[] = [
+  {
+    id: 'CMP-2026-DEMO0001',
+    name: '(주)에코텍스틸 테크놀로지 코리아',
+    biz_no: '502-81-33914',
+    representative: '문서현',
+    address: '대구광역시 달서구 성서공단로 214',
+    contact: 'cert@ecotextil.example.kr',
+    industry: 'fabric',
+    roles: ['fabric_supplier'],
+    created_at: '2026-01-28T09:00:00Z'
+  },
+  {
+    id: 'CMP-2026-DEMO0002',
+    name: 'ARCTERA Sustainability (아크테라)',
+    biz_no: '214-88-01923',
+    representative: '정유진',
+    address: '부산광역시 강서구 녹산산업중로 100',
+    contact: 'compliance@arctera.example.kr',
+    industry: 'fashion',
+    roles: ['manufacturer'],
+    created_at: '2026-02-10T09:00:00Z'
+  },
+  {
+    id: 'CMP-2026-DEMO0003',
+    name: 'BLUE REVOLUTION Studio',
+    biz_no: '110-81-77412',
+    representative: '한도연',
+    address: '서울특별시 성동구 성수이로 51',
+    contact: 'cert@bluerevolution.example.kr',
+    industry: 'fashion',
+    roles: ['manufacturer'],
+    created_at: '2026-08-20T10:00:00Z'
+  },
+  {
+    id: 'CMP-2026-DEMO0004',
+    name: '(주)한빛학생복',
+    biz_no: '317-81-22056',
+    representative: '오세영',
+    address: '경기도 안산시 단원구 산단로 77',
+    contact: 'quality@hanbit-school.example.kr',
+    industry: 'school',
+    roles: [],
+    created_at: '2026-09-01T09:30:00Z'
+  },
+  {
+    // 원단 시드 FAB-2026-CTN-0412 의 공급사 (인증 미보유)
+    id: 'CMP-2026-DEMO0005',
+    name: '신한 친환경 방직 주식회사',
+    industry: 'fabric',
+    roles: ['fabric_supplier'],
+    created_at: '2026-02-12T10:30:00Z'
+  }
+];
+
+export const SEED_CERTS: DomesticCertification[] = [
+  {
+    id: 'APP-2026-DEMO0001',
+    company_id: 'CMP-2026-DEMO0001',
+    cert_no: 'K-TEX-2026-D001',
+    company_name: '(주)에코텍스틸 테크놀로지 코리아',
+    biz_no: '502-81-33914',
+    representative: '문서현',
+    address: '대구광역시 달서구 성서공단로 214',
+    contact: 'cert@ecotextil.example.kr',
+    industry: 'fabric',
+    scheme: 'third_party',
+    requested_tracks: ['T2'],
+    approved_tracks: ['T2'],
+    product_classes: ['23', '24'],
+    status: 'issued',
+    quality_declaration: {
+      esaArticle23: true,
+      esaArticle46: true,
+      reportNo: 'SGS-KR-2026-TX-0841',
+      reportDate: '2026-01-15',
+      testingLab: 'SGS Korea',
+      productClass: '24'
+    },
+    capability_evidence: {
+      factories: [
+        { name: '에코텍스틸 성서 제직공장', location: '대구광역시 달서구', process: '제직·편직' },
+        { name: '에코텍스틸 염색가공동', location: '대구광역시 달서구', process: '염색·가공' }
+      ],
+      representativeSubjectIds: ['FAB-2026-ECO-0991'],
+      note: '원사 조달은 한신 화섬 테크(구미) 국내 방적사 사용'
+    },
+    review_checklist: { docReview: true, feePaid: true, siteAudit: true, eligibility: true, contract: true },
+    reviewer_name: '조창섭 심사원',
+    reviewer_org: '한국섬유산업연합회(섬산련)',
+    reviewed_at: '2026-02-18T15:00:00Z',
+    issued_at: '2026-02-20T09:00:00Z',
+    valid_until: TWO_YEARS('2026-02-20T09:00:00Z'),
+    created_at: '2026-01-28T09:00:00Z',
+    updated_at: '2026-02-20T09:00:00Z'
+  },
+  {
+    id: 'APP-2026-DEMO0002',
+    company_id: 'CMP-2026-DEMO0002',
+    cert_no: 'K-TEX-2026-D002',
+    company_name: 'ARCTERA Sustainability (아크테라)',
+    biz_no: '214-88-01923',
+    representative: '정유진',
+    address: '부산광역시 강서구 녹산산업중로 100',
+    contact: 'compliance@arctera.example.kr',
+    industry: 'fashion',
+    scheme: 'third_party',
+    requested_tracks: ['T1', 'T3'],
+    approved_tracks: ['T1', 'T3'],
+    product_classes: ['25'],
+    status: 'issued',
+    quality_declaration: {
+      esaArticle23: true,
+      esaArticle46: true,
+      reportNo: 'FITI-2026-TX-11842',
+      reportDate: '2026-02-05',
+      testingLab: 'FITI 시험연구원',
+      productClass: '25'
+    },
+    capability_evidence: {
+      factories: [
+        { name: '아크테라 스마트 팩토리 No.1', location: '부산광역시 강서구', process: '봉제' }
+      ],
+      representativeSubjectIds: ['DPP-2026-JKT-0042'],
+      note: '원단은 국내 인증기업(에코텍스틸) T2 원단을 상속받아 T3 요건 충족'
+    },
+    review_checklist: { docReview: true, feePaid: true, siteAudit: true, eligibility: true, contract: true },
+    reviewer_name: '조창섭 심사원',
+    reviewer_org: '한국섬유산업연합회(섬산련)',
+    reviewed_at: '2026-03-03T14:00:00Z',
+    issued_at: '2026-03-05T09:00:00Z',
+    valid_until: TWO_YEARS('2026-03-05T09:00:00Z'),
+    created_at: '2026-02-10T09:00:00Z',
+    updated_at: '2026-03-05T09:00:00Z'
+  },
+  {
+    id: 'APP-2026-DEMO0003',
+    company_id: 'CMP-2026-DEMO0003',
+    cert_no: 'K-TEX-2026-D003',
+    company_name: 'BLUE REVOLUTION Studio',
+    biz_no: '110-81-77412',
+    representative: '한도연',
+    address: '서울특별시 성동구 성수이로 51',
+    contact: 'cert@bluerevolution.example.kr',
+    industry: 'fashion',
+    // 2024.10.17 개정으로 도입된 기업자율인증(자기적합성선언) → 확인서 발급
+    scheme: 'self_declaration',
+    requested_tracks: ['T3'],
+    approved_tracks: ['T3'],
+    product_classes: ['25'],
+    status: 'issued',
+    quality_declaration: {
+      esaArticle23: true,
+      esaArticle46: true,
+      reportNo: 'SGS-KR-2026-0T-3391',
+      reportDate: '2026-08-01',
+      testingLab: 'SGS Korea',
+      productClass: '25'
+    },
+    capability_evidence: {
+      factories: [
+        { name: '블루 레볼루션 아틀리에', location: '서울특별시 성동구 성수동', process: '봉제' }
+      ],
+      representativeSubjectIds: ['DPP-2026-DNM-0188'],
+      note: '자기적합성선언 — 제3자 현장심사 미실시. 사후관리 대상.'
+    },
+    review_checklist: {},
+    reviewer_org: '한국섬유산업연합회(섬산련)',
+    issued_at: '2026-08-20T10:00:00Z',
+    valid_until: TWO_YEARS('2026-08-20T10:00:00Z'),
+    created_at: '2026-08-20T10:00:00Z',
+    updated_at: '2026-08-20T10:00:00Z'
+  },
+  {
+    // 심사 대기 건 — 학생복이 계약업체의 53.7%를 차지하는 제도 현실을 반영
+    id: 'APP-2026-DEMO0004',
+    company_id: 'CMP-2026-DEMO0004',
+    cert_no: null,
+    company_name: '(주)한빛학생복',
+    biz_no: '317-81-22056',
+    representative: '오세영',
+    address: '경기도 안산시 단원구 산단로 77',
+    contact: 'quality@hanbit-school.example.kr',
+    industry: 'school',
+    scheme: 'third_party',
+    requested_tracks: ['T1'],
+    approved_tracks: [],
+    product_classes: ['25'],
+    status: 'submitted',
+    quality_declaration: {
+      esaArticle23: true,
+      esaArticle46: true,
+      reportNo: 'KOTITI-2026-SC-0774',
+      reportDate: '2026-08-28',
+      testingLab: 'KOTITI 시험연구원',
+      productClass: '25'
+    },
+    capability_evidence: {
+      factories: [{ name: '한빛학생복 안산공장', location: '경기도 안산시 단원구', process: '봉제' }],
+      note: '교복 동복 자켓·바지 라인. 국내 제직·염가공 원단 사용, 봉제 자사 공장.'
+    },
+    review_checklist: {},
+    reviewer_org: '한국섬유산업연합회(섬산련)',
+    created_at: '2026-09-01T09:30:00Z',
+    updated_at: '2026-09-01T09:30:00Z'
+  }
+];
+
+// ------------------------------------------------------------------------------
+// 마크 발급 시드 — 인증기업이 계약 체결 후 트랙별로 발급받은 이력
+//
+// 마크는 업체에 발행된다. 제품과 연결되지 않으므로 subject_id 류의 참조가 없고,
+// 같은 업체가 배치별로 여러 차례 발급받는다(발급현황 단위: 천매/년).
+// ------------------------------------------------------------------------------
+
+export const SEED_MARKS: MarkIssue[] = [
+  // 에코텍스틸 — T2 원단 인증기업. 지류 행택 + 띠지 두 형태로 나눠 수령.
+  {
+    id: 'MRK-2026-DEMO0001',
+    mark_no: 'KTM-2026-D0001',
+    cert_id: 'APP-2026-DEMO0001',
+    track: 'T2',
+    carrier: 'hangtag',
+    quantity: 120000,
+    printer: '섬산련 지정 인쇄소 (대구)',
+    status: 'issued',
+    issued_at: '2026-02-24T09:00:00Z',
+    created_at: '2026-02-24T09:00:00Z',
+    updated_at: '2026-02-24T09:00:00Z'
+  },
+  {
+    id: 'MRK-2026-DEMO0002',
+    mark_no: 'KTM-2026-D0002',
+    cert_id: 'APP-2026-DEMO0001',
+    track: 'T2',
+    carrier: 'band',
+    quantity: 40000,
+    printer: '섬산련 지정 인쇄소 (대구)',
+    status: 'issued',
+    issued_at: '2026-07-06T09:00:00Z',
+    created_at: '2026-07-06T09:00:00Z',
+    updated_at: '2026-07-06T09:00:00Z'
+  },
+  // ARCTERA — T1·T3 복수 트랙 보유. 트랙별로 발급번호가 따로 부여된다.
+  {
+    id: 'MRK-2026-DEMO0003',
+    mark_no: 'KTM-2026-D0003',
+    cert_id: 'APP-2026-DEMO0002',
+    track: 'T3',
+    carrier: 'hangtag',
+    quantity: 18000,
+    printer: '섬산련 지정 인쇄소 (부산)',
+    status: 'issued',
+    issued_at: '2026-03-10T09:00:00Z',
+    created_at: '2026-03-10T09:00:00Z',
+    updated_at: '2026-03-10T09:00:00Z'
+  },
+  {
+    id: 'MRK-2026-DEMO0004',
+    mark_no: 'KTM-2026-D0004',
+    cert_id: 'APP-2026-DEMO0002',
+    track: 'T1',
+    carrier: 'hangtag',
+    quantity: 65000,
+    printer: '섬산련 지정 인쇄소 (부산)',
+    status: 'issued',
+    issued_at: '2026-03-10T09:00:00Z',
+    created_at: '2026-03-10T09:00:00Z',
+    updated_at: '2026-03-10T09:00:00Z'
+  },
+  // BLUE REVOLUTION — 기업자율인증(확인기업). 2024.10.17 개정으로 추가된 QR 형태로 수령.
+  {
+    id: 'MRK-2026-DEMO0005',
+    mark_no: 'KTM-2026-D0005',
+    cert_id: 'APP-2026-DEMO0003',
+    track: 'T3',
+    carrier: 'qr',
+    quantity: 9500,
+    printer: '섬산련 지정 인쇄소 (서울)',
+    status: 'issued',
+    issued_at: '2026-08-22T10:00:00Z',
+    created_at: '2026-08-22T10:00:00Z',
+    updated_at: '2026-08-22T10:00:00Z'
   }
 ];

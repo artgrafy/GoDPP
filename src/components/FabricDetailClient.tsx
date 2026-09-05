@@ -1,9 +1,12 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter, useSearchParams, useParams } from 'next/navigation';
-import { getFabricById, getPassports } from '@/lib/supabase';
+import { getFabricById, getPassports, getCertForCompany } from '@/lib/supabase';
 import { FabricDPP, FashionDPP } from '@/types/dpp';
+import type { DomesticCertification } from '@/types/domesticCert';
+import { summarizeDomesticProcesses } from '@/lib/domesticCert';
+import { DomesticProcessCard } from '@/components/cert/DomesticProcessCard';
 import { Header } from '@/components/Header';
 import { 
   Layers, 
@@ -32,6 +35,8 @@ export function FabricDetailClient({ fabricId: propFabricId }: { fabricId?: stri
 
   const [fabric, setFabric] = useState<FabricDPP | null>(null);
   const [relatedPassports, setRelatedPassports] = useState<FashionDPP[]>([]);
+  // 공급사(업체)의 국산인증. 원단에 붙는 것이 아니라 참고 정보로만 보여준다.
+  const [supplierCert, setSupplierCert] = useState<DomesticCertification | null>(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
 
@@ -45,9 +50,17 @@ export function FabricDetailClient({ fabricId: propFabricId }: { fabricId?: stri
       setLoading(true);
       try {
         const [fData, pData] = await Promise.all([getFabricById(fabricId), getPassports()]);
+        // 국산인증은 업체에 발행되므로 원단 ID가 아니라 공급사로 조회한다.
+        const cert = fData
+          ? await getCertForCompany({
+              companyId: fData.company_id,
+              companyName: fData.supplier_name
+            })
+          : null;
         if (isMounted) {
           setFabric(fData);
-          setRelatedPassports(pData.filter((p) => p.fabric_id === fabricId));
+          setRelatedPassports(pData.filter((p: FashionDPP) => p.fabric_id === fabricId));
+          setSupplierCert(cert);
         }
       } catch (err) {
         console.error('[GoDPP] Load fabric detail failed:', err);
@@ -62,6 +75,11 @@ export function FabricDetailClient({ fabricId: propFabricId }: { fabricId?: stri
       isMounted = false;
     };
   }, [fabricId]);
+
+  const processSummary = useMemo(
+    () => (fabric ? summarizeDomesticProcesses({ subjectType: 'fabric', fabric }) : null),
+    [fabric]
+  );
 
   const handleShare = () => {
     if (typeof window !== 'undefined') {
@@ -92,7 +110,7 @@ export function FabricDetailClient({ fabricId: propFabricId }: { fabricId?: stri
           </p>
           <button
             onClick={() => router.push('/fabric-supplier')}
-            className="px-5 py-2.5 rounded-xl bg-purple-500 hover:bg-purple-400 text-white font-bold text-xs transition-all"
+            className="px-5 py-2.5 rounded-xl bg-purple-500 hover:bg-purple-400 text-slate-950 font-bold text-xs transition-all"
           >
             원단 목록으로
           </button>
@@ -174,6 +192,17 @@ export function FabricDetailClient({ fabricId: propFabricId }: { fabricId?: stri
             </div>
           </div>
         </div>
+
+        {/* 국산 공정 이력 (인증이 아니라 이 원단이 실제로 보유한 공정 데이터) */}
+        {processSummary && (
+          <DomesticProcessCard
+            summary={processSummary}
+            subjectType="fabric"
+            processDetails={fabric.domestic_origin?.processes}
+            manufacturerCert={supplierCert}
+            manufacturerName={fabric.supplier_name}
+          />
+        )}
 
         {/* 소재 혼용률 및 조직 */}
         <div className="glass-panel p-6 rounded-3xl border border-white/10 space-y-4">

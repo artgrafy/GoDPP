@@ -15,6 +15,7 @@ import {
   Tooltip
 } from 'recharts';
 import { EcoScores, DeepComplianceData } from '@/types/dpp';
+import { useChartPalette } from '@/lib/useTheme';
 import { Leaf, Award, Activity } from 'lucide-react';
 
 interface LcaRadarChartProps {
@@ -23,6 +24,9 @@ interface LcaRadarChartProps {
 }
 
 export const LcaRadarChart: React.FC<LcaRadarChartProps> = ({ ecoScores, deepData }) => {
+  // recharts 는 색을 props 로 받으므로 CSS 변수만으로는 테마를 못 따라온다.
+  const c = useChartPalette();
+
   const radarData = [
     { subject: '탄소 효율', score: Math.min(100, Math.round(100 - (ecoScores.totalCarbonKg / 25) * 100)), fullMark: 100 },
     { subject: '내구성', score: ecoScores.durabilityIndex * 10, fullMark: 100 },
@@ -32,9 +36,9 @@ export const LcaRadarChart: React.FC<LcaRadarChartProps> = ({ ecoScores, deepDat
   ];
 
   const scopeData = deepData ? [
-    { name: 'Scope 1 (직접)', value: deepData.scope1EmissionsKg, fill: '#10b981' },
-    { name: 'Scope 2 (간접)', value: deepData.scope2EmissionsKg, fill: '#0ea5e9' },
-    { name: 'Scope 3 (공급망)', value: deepData.scope3EmissionsKg, fill: '#8b5cf6' },
+    { name: 'Scope 1 (직접)', value: deepData.scope1EmissionsKg, fill: c.scope1 },
+    { name: 'Scope 2 (간접)', value: deepData.scope2EmissionsKg, fill: c.scope2 },
+    { name: 'Scope 3 (공급망)', value: deepData.scope3EmissionsKg, fill: c.scope3 },
   ] : [];
 
   return (
@@ -57,14 +61,14 @@ export const LcaRadarChart: React.FC<LcaRadarChartProps> = ({ ecoScores, deepDat
         <div className="h-56 w-full my-2">
           <ResponsiveContainer width="100%" height="100%">
             <RadarChart cx="50%" cy="50%" outerRadius="75%" data={radarData}>
-              <PolarGrid stroke="#334155" strokeDasharray="3 3" />
-              <PolarAngleAxis dataKey="subject" stroke="#94a3b8" tick={{ fontSize: 11, fill: '#cbd5e1' }} />
-              <PolarRadiusAxis angle={30} domain={[0, 100]} stroke="#475569" tick={false} />
+              <PolarGrid stroke={c.grid} strokeDasharray="3 3" />
+              <PolarAngleAxis dataKey="subject" stroke={c.axis} tick={{ fontSize: 11, fill: c.tick }} />
+              <PolarRadiusAxis angle={30} domain={[0, 100]} stroke={c.axis} tick={false} />
               <Radar
-                name="GoDPP 지수"
+                name="kDPP 지수"
                 dataKey="score"
-                stroke="#10b981"
-                fill="#10b981"
+                stroke={c.radar}
+                fill={c.radar}
                 fillOpacity={0.4}
               />
             </RadarChart>
@@ -106,10 +110,12 @@ export const LcaRadarChart: React.FC<LcaRadarChartProps> = ({ ecoScores, deepDat
           <div className="h-56 w-full my-2">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={scopeData} layout="vertical" margin={{ top: 10, right: 30, left: 20, bottom: 5 }}>
-                <XAxis type="number" stroke="#64748b" tick={{ fontSize: 10, fill: '#94a3b8' }} unit=" kg" />
-                <YAxis dataKey="name" type="category" stroke="#64748b" tick={{ fontSize: 11, fill: '#cbd5e1' }} width={100} />
+                <XAxis type="number" stroke={c.axis} tick={{ fontSize: 10, fill: c.tick }} unit=" kg" />
+                <YAxis dataKey="name" type="category" stroke={c.axis} tick={{ fontSize: 11, fill: c.tick }} width={100} />
                 <Tooltip
-                  contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px', fontSize: '12px' }}
+                  contentStyle={{ backgroundColor: c.tooltipBg, borderColor: c.tooltipBorder, color: c.tooltipFg, borderRadius: '12px', fontSize: '12px' }}
+                  itemStyle={{ color: c.tooltipFg }}
+                  labelStyle={{ color: c.tooltipFg }}
                   formatter={(value: any) => [`${value} kg CO₂e`, '배출량']}
                 />
                 <Bar dataKey="value" radius={[0, 8, 8, 0]} />

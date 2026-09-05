@@ -1,10 +1,19 @@
-export type UserRole = 'consumer' | 'manufacturer' | 'fabric_supplier' | 'verifier';
+import type { DomesticOrigin } from './domesticCert';
+
+export type UserRole =
+  | 'consumer'
+  | 'manufacturer'
+  | 'fabric_supplier'
+  | 'verifier'
+  | 'cert_auditor';
 
 export interface MaterialComposition {
   material: string;
   percentage: number;
   isRecycled?: boolean;
   isOrganic?: boolean;
+  /** 국산 소재 여부. 국산 혼용률(참고 지표) 산출 근거 */
+  isDomestic?: boolean;
 }
 
 export interface Certification {
@@ -42,6 +51,10 @@ export interface FabricDPP {
     labReportDate: string;
     testingLab: string;
   };
+  /** 공정별 국산 여부(원사/제직·편직/염색·가공). 없으면 '미확인'이며 '국외'가 아니다. */
+  domestic_origin?: DomesticOrigin;
+  /** 소유 업체(dpp_companies.id). supplier_name 은 발급 시점 표기 스냅샷이고 이 값이 정본이다. */
+  company_id?: string | null;
   created_at?: string;
   updated_at?: string;
 }
@@ -108,6 +121,10 @@ export interface FashionDPP {
   };
   supply_chain_journey: SupplyChainStep[];
   deep_compliance_data: DeepComplianceData;
+  /** 완제품 공정 국산 여부. 봉제(is_domestic_sewing) + 원단에서 상속되지 않은 값 */
+  domestic_origin?: DomesticOrigin;
+  /** 소유 업체(dpp_companies.id). brand_name 은 발급 시점 표기 스냅샷이고 이 값이 정본이다. */
+  company_id?: string | null;
   created_at?: string;
   updated_at?: string;
 }
