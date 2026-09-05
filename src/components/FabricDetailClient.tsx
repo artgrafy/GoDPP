@@ -319,7 +319,7 @@ export function FabricDetailClient({ fabricId: propFabricId }: { fabricId?: stri
                     alt={p.product_name}
                     className="w-12 h-12 rounded-xl object-cover bg-slate-800 shrink-0"
                     onError={(e) => {
-                      (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=1000&q=80';
+                      (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1631112213238-b1bafeaecff3?auto=format&fit=crop&w=1000&q=80';
                     }}
                   />
                   <div className="flex-1 truncate">

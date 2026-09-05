@@ -189,7 +189,7 @@ export function PassportDetailClient({ passportId: propPassportId }: { passportI
                 className="w-full h-full object-cover"
                 onError={(e) => {
                   // 이미지 로드 실패 시 대체 데님/의류 이미지로 fallback
-                  (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=1000&q=80';
+                  (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1631112213238-b1bafeaecff3?auto=format&fit=crop&w=1000&q=80';
                 }}
               />
               <div className="absolute bottom-2 left-2 right-2 px-2.5 py-1 rounded-xl bg-slate-950/85 backdrop-blur-md text-[10px] font-mono text-emerald-300 border border-emerald-500/30 text-center">

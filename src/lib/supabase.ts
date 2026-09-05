@@ -35,8 +35,8 @@ const STORAGE_KEY_CREVIEW = 'godpp_cert_reviews_v1';
 
 // 이미지 URL 자동 보정 맵 (부적절/깨진 이미지 -> 고화질 매칭 이미지)
 const BROKEN_IMAGE_FALLBACKS: Record<string, string> = {
-  'https://images.unsplash.com/photo-1542272604-780c96856592': 'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=1000&q=80',
-  'https://images.unsplash.com/photo-1544441893-675973e31985': 'https://images.unsplash.com/photo-1551028719-00167b16eac5?auto=format&fit=crop&w=1000&q=80',
+  'https://images.unsplash.com/photo-1542272604-780c96856592': 'https://images.unsplash.com/photo-1631112213238-b1bafeaecff3?auto=format&fit=crop&w=1000&q=80',
+  'https://images.unsplash.com/photo-1544441893-675973e31985': 'https://images.unsplash.com/photo-1548883354-94bcfe321cbb?auto=format&fit=crop&w=1000&q=80',
 };
 
 // 브라우저 로컬 스토리지 초기화 / 가져오기

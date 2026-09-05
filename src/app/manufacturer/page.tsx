@@ -59,11 +59,11 @@ const SEASON_OPTIONS = [
 ];
 
 const PRESET_IMAGES = [
-  { label: '🧥 기능성 자켓', url: 'https://images.unsplash.com/photo-1551488831-00ddcb6c6bd3?auto=format&fit=crop&w=1000&q=80' },
-  { label: '👖 오가닉 데님', url: 'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=1000&q=80' },
+  { label: '🧥 기능성 자켓', url: 'https://images.unsplash.com/photo-1548883354-94bcfe321cbb?auto=format&fit=crop&w=1000&q=80' },
+  { label: '👖 오가닉 데님', url: 'https://images.unsplash.com/photo-1631112213238-b1bafeaecff3?auto=format&fit=crop&w=1000&q=80' },
   { label: '👔 코튼 셔츠', url: 'https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?auto=format&fit=crop&w=1000&q=80' },
   { label: '🧶 에코 니트', url: 'https://images.unsplash.com/photo-1574201635302-388dd92a4c3f?auto=format&fit=crop&w=1000&q=80' },
-  { label: '👕 베이직 티셔츠', url: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&w=1000&q=80' },
+  { label: '👕 베이직 티셔츠', url: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=1000&q=80' },
   { label: '👗 에코 드레스', url: 'https://images.unsplash.com/photo-1595777457583-95e059d581b8?auto=format&fit=crop&w=1000&q=80' },
 ];
 
@@ -924,7 +924,7 @@ export default function ManufacturerDashboard() {
                     alt={p.product_name}
                     className="w-16 h-16 rounded-xl object-cover bg-slate-800 border border-white/10 shrink-0"
                     onError={(e) => {
-                      (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=1000&q=80';
+                      (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1631112213238-b1bafeaecff3?auto=format&fit=crop&w=1000&q=80';
                     }}
                   />
                   <div>

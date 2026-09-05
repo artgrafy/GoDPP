@@ -153,7 +153,7 @@ export const SEED_PASSPORTS: FashionDPP[] = [
     category: 'Outerwear (기능성 아웃도어)',
     season: '2026 S/S Circular Collection',
     manufactured_country: 'KR (대한민국)',
-    image_url: 'https://images.unsplash.com/photo-1551028719-00167b16eac5?auto=format&fit=crop&w=1000&q=80',
+    image_url: 'https://images.unsplash.com/photo-1548883354-94bcfe321cbb?auto=format&fit=crop&w=1000&q=80',
     fabric_id: 'FAB-2026-ECO-0991',
     fabric_snapshot: SEED_FABRICS[0],
     materials_summary: [
@@ -270,7 +270,7 @@ export const SEED_PASSPORTS: FashionDPP[] = [
     category: 'Denim (데님/팬츠)',
     season: '2026 S/S Timeless Eco',
     manufactured_country: 'KR (대한민국)',
-    image_url: 'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=1000&q=80',
+    image_url: 'https://images.unsplash.com/photo-1631112213238-b1bafeaecff3?auto=format&fit=crop&w=1000&q=80',
     fabric_id: 'FAB-2026-CTN-0412',
     fabric_snapshot: SEED_FABRICS[1],
     materials_summary: [
