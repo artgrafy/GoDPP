@@ -30,7 +30,7 @@ module.exports = {
         white: rgb('--c-white'),
         slate: scale('slate', [50, 100, 200, 300, 400, 500, 600, 700, 800, 850, 900, 950]),
         emerald: scale('emerald', [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950]),
-        sky: scale('sky', [200, 300, 400, 500, 600, 700]),
+        sky: scale('sky', [200, 300, 400, 500, 600, 700, 950]),
         teal: scale('teal', [200, 300, 400, 500, 600]),
         purple: scale('purple', [200, 300, 400, 500, 600, 700, 950]),
         indigo: scale('indigo', [400, 500, 600]),
