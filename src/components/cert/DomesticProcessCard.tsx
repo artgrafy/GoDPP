@@ -1,43 +1,31 @@
 'use client';
 
 import React from 'react';
-import Link from 'next/link';
 import {
   AlertTriangle,
   BadgeCheck,
-  Building2,
   CircleHelp,
-  ExternalLink,
   Factory,
   Link2Off,
   MapPin,
   XCircle
 } from 'lucide-react';
 import type {
-  DomesticCertification,
   ProcessDetail,
   ProcessKey,
   TriState
 } from '@/types/domesticCert';
 import type { DomesticProcessSummary } from '@/lib/domesticCert';
-import { LIFECYCLE_LABEL, PROCESS_LABEL, certLifecycleState, documentTitle } from '@/lib/domesticCert';
+import { PROCESS_LABEL } from '@/lib/domesticCert';
 
 /**
  * 제품/원단의 국산 공정 이력 카드.
- *
- * 🔴 이 카드는 '인증'을 표시하지 않는다.
- *    국산인증은 업체(제조사)에 발행되므로 제품에는 트랙·마크·인증번호를 붙이지 않는다.
- *    여기서는 DPP가 실제로 보유한 공정별 국내/국외/미확인 사실만 보여주고,
- *    제조사가 인증기업이면 그 사실을 '업체에 대한 정보'로 한 줄 덧붙인다.
+ * DPP가 실제로 보유한 공정별 국내/국외/미확인 사실과 국산 소재 혼용률을 보여준다.
  */
 interface DomesticProcessCardProps {
   summary: DomesticProcessSummary;
   subjectType: 'fabric' | 'passport';
   processDetails?: Partial<Record<ProcessKey, ProcessDetail>>;
-  /** 제조사(원단이면 공급사)의 업체 인증 — 있으면 참고 정보로 표시 */
-  manufacturerCert?: DomesticCertification | null;
-  /** 제조사 표기명 (인증이 없을 때도 문구에 쓴다) */
-  manufacturerName?: string;
   className?: string;
 }
 
@@ -67,8 +55,6 @@ export function DomesticProcessCard({
   summary,
   subjectType,
   processDetails,
-  manufacturerCert,
-  manufacturerName,
   className = ''
 }: DomesticProcessCardProps) {
   const { stages, processes, domesticCount, unknownCount, domesticRatio, ratioWarning } = summary;
@@ -77,8 +63,6 @@ export function DomesticProcessCard({
     !summary.hasFabricLink &&
     processes.weaving === null &&
     processes.dyeing === null;
-
-  const certState = manufacturerCert ? certLifecycleState(manufacturerCert) : null;
 
   return (
     <section className={`glass-panel rounded-2xl p-5 sm:p-6 ${className}`}>
@@ -166,56 +150,6 @@ export function DomesticProcessCard({
           </p>
         )}
       </div>
-
-      {/* 제조사(업체) 인증 — 제품이 아니라 업체에 대한 사실이다 */}
-      {manufacturerCert && certState === 'active' && (
-        <div className="mt-4 rounded-xl bg-slate-900/40 border border-slate-700/40 px-4 py-3">
-          <div className="flex items-start justify-between gap-3 flex-wrap">
-            <div className="min-w-0">
-              <p className="text-[10px] font-bold text-slate-500 flex items-center gap-1">
-                <Building2 className="w-3 h-3" /> 제조사 국산인증
-              </p>
-              <p className="text-xs font-bold text-slate-100 mt-0.5">
-                {manufacturerCert.company_name}
-              </p>
-              <p className="text-[10px] text-slate-400 mt-0.5">
-                섬산련 국산 섬유제품 {documentTitle(manufacturerCert.scheme)} 보유
-                {manufacturerCert.approved_tracks?.length > 0 &&
-                  ` · ${manufacturerCert.approved_tracks.join('·')}`}
-                {manufacturerCert.cert_no && ` · ${manufacturerCert.cert_no}`}
-              </p>
-            </div>
-            {manufacturerCert.cert_no && (
-              <Link
-                href={`/cert?no=${encodeURIComponent(manufacturerCert.cert_no)}`}
-                className="text-[11px] font-bold text-slate-300 hover:text-emerald-300 inline-flex items-center gap-1 shrink-0"
-              >
-                업체 인증 보기 <ExternalLink className="w-3 h-3" />
-              </Link>
-            )}
-          </div>
-          <p className="text-[10px] text-slate-500 mt-2 leading-relaxed">
-            국산인증은 업체 단위로 발행됩니다. 이 {subjectType === 'fabric' ? '원단' : '제품'} 자체가
-            개별 인증을 받은 것은 아닙니다.
-          </p>
-        </div>
-      )}
-
-      {manufacturerCert && certState && certState !== 'active' && (
-        <div className="mt-4 rounded-xl bg-slate-900/40 border border-slate-700/40 px-4 py-3">
-          <p className="text-[11px] text-slate-400">
-            제조사 {manufacturerCert.company_name}의 국산인증 상태:{' '}
-            <span className="font-bold text-slate-200">{LIFECYCLE_LABEL[certState]}</span>
-          </p>
-        </div>
-      )}
-
-      {!manufacturerCert && manufacturerName && (
-        <p className="mt-4 text-[10px] text-slate-500 leading-relaxed">
-          {manufacturerName}는 섬산련 국산 섬유제품 인증기업으로 등록되어 있지 않습니다. 위 공정 이력은
-          DPP에 신고된 자료이며 제3자 검증을 거치지 않았습니다.
-        </p>
-      )}
     </section>
   );
 }

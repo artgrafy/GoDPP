@@ -488,12 +488,12 @@ export default function FabricSupplierPage() {
 
               {/* 인증서 및 환경 지표 */}
               <div className="space-y-4">
-                {/* 국산 공정 이력 (섬산련 국산 섬유제품 인증 대응) */}
+                {/* 국산 공정 이력 */}
                 <div className="p-4 rounded-2xl bg-purple-950/20 border border-purple-500/25 space-y-3">
                   <div>
                     <span className="text-xs font-bold text-white flex items-center gap-1.5">
                       <BadgeCheck className="w-4 h-4 text-purple-400" />
-                      국산 공정 이력 (섬산련 국산 섬유제품 인증 대응)
+                      국산 공정 이력
                     </span>
                     <p className="text-[10px] text-slate-400 mt-0.5">
                       확인되지 않은 공정은 <strong>미확인</strong>으로 두세요. 미입력은 국외가 아닙니다.

@@ -1,19 +1,11 @@
 import { createClient } from '@supabase/supabase-js';
 import { FabricDPP, FashionDPP, AuditLog } from '@/types/dpp';
 import type {
-  CertReviewEvent,
-  CertReviewEventType,
-  CertScheme,
-  CertStatus,
   Company,
-  CompanyMember,
-  DomesticCertification,
-  MarkIssue,
-  MarkStatus
+  CompanyMember
 } from '@/types/domesticCert';
 import { normalizeBizNo, normalizeCompanyName } from '@/types/domesticCert';
-import { certLifecycleState } from './domesticCert';
-import { SEED_FABRICS, SEED_PASSPORTS, SEED_CERTS, SEED_MARKS, SEED_COMPANIES } from './seedData';
+import { SEED_FABRICS, SEED_PASSPORTS, SEED_COMPANIES } from './seedData';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://jftsdfkohskbuunptkrh.supabase.co';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
@@ -26,12 +18,7 @@ export const supabase = supabaseAnonKey
 const STORAGE_KEY_FABRICS = 'godpp_fabrics_v3';
 const STORAGE_KEY_PASSPORTS = 'godpp_passports_v3';
 const STORAGE_KEY_LOGS = 'godpp_audit_logs_v3';
-const STORAGE_KEY_CERTS = 'godpp_certs_v1';
-// v2: 마크가 제품 단위(subject_id)에서 업체 단위(cert_id)로 바뀌어 행 구조가 호환되지 않는다.
-// DPP 본체 키(godpp_fabrics_v3 / godpp_passports_v3)는 사용자 데이터라 절대 올리지 않는다.
-const STORAGE_KEY_MARKS = 'godpp_cert_marks_v2';
 const STORAGE_KEY_COMPANIES = 'godpp_companies_v1';
-const STORAGE_KEY_CREVIEW = 'godpp_cert_reviews_v1';
 
 // 이미지 URL 자동 보정 맵 (부적절/깨진 이미지 -> 고화질 매칭 이미지)
 const BROKEN_IMAGE_FALLBACKS: Record<string, string> = {
@@ -369,26 +356,9 @@ export function getAuditLogs(): AuditLog[] {
   return getLocalData<AuditLog[]>(STORAGE_KEY_LOGS, []);
 }
 
-// ==============================================================================
-// 국산 섬유제품 인증 — 2계층
-//   1계층 업체 인증 (dpp_kofoti_certifications)
-//   2계층 마크 발급 (dpp_kofoti_mark_issues)
-// ==============================================================================
-
 /**
- * 원격/로컬을 id 기준으로 병합한다(원격 우선).
- *
- * 기존 getFabrics/getPassports는 "원격이 있으면 로컬을 덮어쓰고, 원격이 비면 시드로 폴백"한다.
- * 인증 워크플로에서는 그 두 동작이 모두 위험하다 —
- *  ① 인증 테이블은 초기에 비어 있는 게 정상이라 length>0 가드를 쓰면 발급한 인증서가 사라지고,
- *  ② 오프라인에서 만든 신청 건이 원격 동기화 시 조용히 유실된다.
- */
-/**
- * 20260905_kofoti_cert.sql 마이그레이션이 아직 적용되지 않은 DB에서 발생하는 오류인지 판정한다.
+ * domestic_origin 컬럼이 아직 적용되지 않은 DB에서 발생하는 오류인지 판정한다.
  * (PostgREST는 없는 컬럼에 대해 42703 / PGRST204 를 돌려준다)
- *
- * 코드가 마이그레이션보다 먼저 배포되면 upsert 전체가 실패해 DPP 저장이
- * 조용히 클라우드 동기화를 멈춘다 — 그 순서 위험을 여기서 흡수한다.
  */
 function isMissingDomesticOriginColumn(error: { code?: string; message?: string } | null): boolean {
   if (!error) return false;
@@ -399,339 +369,10 @@ function isMissingDomesticOriginColumn(error: { code?: string; message?: string 
   );
 }
 
-function mergeById<T extends { id: string }>(remote: T[], local: T[]): T[] {
-  const map = new Map<string, T>();
-  for (const item of local) map.set(item.id, item);
-  for (const item of remote) map.set(item.id, item);
-  return Array.from(map.values());
-}
-
-function sortByCreatedDesc<T extends { created_at?: string }>(list: T[]): T[] {
-  return [...list].sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''));
-}
-
-// ------------------------------------------------------------------------------
-// 1계층: 업체 인증
-// ------------------------------------------------------------------------------
-
-export async function getCertifications(filter?: {
-  status?: CertStatus | CertStatus[];
-  scheme?: CertScheme;
-  companyName?: string;
-}): Promise<DomesticCertification[]> {
-  const local = getLocalData<DomesticCertification[]>(STORAGE_KEY_CERTS, SEED_CERTS);
-  let merged = local;
-
-  if (supabase) {
-    try {
-      const { data, error } = await supabase.from('dpp_kofoti_certifications').select('*');
-      if (!error && data) {
-        merged = mergeById(data as DomesticCertification[], local);
-        setLocalData(STORAGE_KEY_CERTS, merged);
-      }
-    } catch (err) {
-      console.warn('[GoDPP] Supabase getCertifications fallback:', err);
-    }
-  }
-
-  let result = sortByCreatedDesc(merged);
-  if (filter?.status) {
-    const wanted = Array.isArray(filter.status) ? filter.status : [filter.status];
-    result = result.filter((c) => wanted.includes(c.status));
-  }
-  if (filter?.scheme) result = result.filter((c) => c.scheme === filter.scheme);
-  if (filter?.companyName) {
-    const q = filter.companyName.trim();
-    result = result.filter((c) => c.company_name.trim() === q);
-  }
-  return result;
-}
-
-export async function getCertificationById(id: string): Promise<DomesticCertification | null> {
-  const cleanId = (id || '').trim();
-  if (!cleanId) return null;
-  const all = await getCertifications();
-  return all.find((c) => c.id.trim() === cleanId) || null;
-}
-
-export async function getCertificationByCertNo(
-  certNo: string
-): Promise<DomesticCertification | null> {
-  const clean = (certNo || '').trim().toUpperCase();
-  if (!clean) return null;
-  const all = await getCertifications();
-  return all.find((c) => (c.cert_no || '').trim().toUpperCase() === clean) || null;
-}
-
-/** 마크를 발급할 수 있는 업체 = 계약이 유효한 인증기업 */
-export async function getActiveCertifications(): Promise<DomesticCertification[]> {
-  const all = await getCertifications();
-  return all.filter((c) => certLifecycleState(c) === 'active');
-}
-
-/**
- * 업체의 국산인증 1건 조회 — 제품 상세에서 "제조사가 인증기업인가"를 확인할 때 쓴다.
- *
- * 제품에는 인증이 붙지 않으므로 제품 ID로는 찾을 수 없다. 소유 업체(company_id)가 정본이고,
- * 예전에 등록돼 company_id가 없는 DPP를 위해 업체명 정규화 대조를 폴백으로 둔다.
- * 유효한 인증을 우선 반환하고, 없으면 심사중·만료 등 다른 상태라도 알려준다(상태 표기는 화면에서).
- */
-export async function getCertForCompany(opts: {
-  companyId?: string | null;
-  companyName?: string | null;
-}): Promise<DomesticCertification | null> {
-  const all = await getCertifications();
-  const nm = normalizeCompanyName(opts.companyName ?? '');
-
-  const matches = all.filter((c) => {
-    if (opts.companyId && c.company_id) return c.company_id === opts.companyId;
-    return nm ? normalizeCompanyName(c.company_name) === nm : false;
-  });
-  if (matches.length === 0) return null;
-
-  return (
-    matches.find((c) => certLifecycleState(c) === 'active') ??
-    matches.find((c) => certLifecycleState(c) === 'in_review') ??
-    matches[0]
-  );
-}
-
-export async function saveCertification(
-  cert: DomesticCertification
-): Promise<{ success: boolean; data?: DomesticCertification; error?: string }> {
-  const currentList = getLocalData<DomesticCertification[]>(STORAGE_KEY_CERTS, SEED_CERTS);
-  const existingIdx = currentList.findIndex((c) => c.id === cert.id);
-  const now = new Date().toISOString();
-  let updatedList: DomesticCertification[];
-
-  if (existingIdx >= 0) {
-    updatedList = [...currentList];
-    updatedList[existingIdx] = { ...cert, updated_at: now };
-  } else {
-    updatedList = [{ ...cert, created_at: cert.created_at || now, updated_at: now }, ...currentList];
-  }
-  setLocalData(STORAGE_KEY_CERTS, updatedList);
-
-  if (supabase) {
-    try {
-      const { data, error } = await supabase
-        .from('dpp_kofoti_certifications')
-        .upsert({
-          id: cert.id,
-          cert_no: cert.cert_no ?? null,
-          company_id: cert.company_id ?? null,
-          company_name: cert.company_name,
-          biz_no: cert.biz_no ?? null,
-          representative: cert.representative ?? null,
-          address: cert.address ?? null,
-          contact: cert.contact ?? null,
-          industry: cert.industry ?? null,
-          scheme: cert.scheme,
-          requested_tracks: cert.requested_tracks ?? [],
-          approved_tracks: cert.approved_tracks ?? [],
-          product_classes: cert.product_classes ?? [],
-          status: cert.status,
-          quality_declaration: cert.quality_declaration,
-          capability_evidence: cert.capability_evidence,
-          review_checklist: cert.review_checklist,
-          reviewer_name: cert.reviewer_name ?? null,
-          reviewer_org: cert.reviewer_org ?? null,
-          reviewed_at: cert.reviewed_at ?? null,
-          reject_reason: cert.reject_reason ?? null,
-          revoke_reason: cert.revoke_reason ?? null,
-          issued_at: cert.issued_at ?? null,
-          valid_until: cert.valid_until ?? null,
-          previous_cert_id: cert.previous_cert_id ?? null,
-          updated_at: now
-        })
-        .select()
-        .single();
-
-      if (error) console.warn('[GoDPP] Supabase saveCertification warning:', error.message);
-      else if (data) return { success: true, data: data as DomesticCertification };
-    } catch (err: any) {
-      console.warn('[GoDPP] Supabase saveCertification error:', err?.message || err);
-    }
-  }
-
-  return { success: true, data: cert };
-}
-
-// ------------------------------------------------------------------------------
-// 2계층: 마크 발급
-// ------------------------------------------------------------------------------
-
-export async function getMarkIssues(filter?: {
-  certId?: string;
-  status?: MarkStatus;
-}): Promise<MarkIssue[]> {
-  const local = getLocalData<MarkIssue[]>(STORAGE_KEY_MARKS, SEED_MARKS);
-  let merged = local;
-
-  if (supabase) {
-    try {
-      const { data, error } = await supabase.from('dpp_kofoti_mark_issues').select('*');
-      if (!error && data) {
-        merged = mergeById(data as MarkIssue[], local);
-        setLocalData(STORAGE_KEY_MARKS, merged);
-      }
-    } catch (err) {
-      console.warn('[GoDPP] Supabase getMarkIssues fallback:', err);
-    }
-  }
-
-  let result = sortByCreatedDesc(merged);
-  if (filter?.certId) result = result.filter((m) => m.cert_id === filter.certId);
-  if (filter?.status) result = result.filter((m) => m.status === filter.status);
-  return result;
-}
-
-export async function getMarkByNo(markNo: string): Promise<MarkIssue | null> {
-  const clean = (markNo || '').trim().toUpperCase();
-  if (!clean) return null;
-  const all = await getMarkIssues();
-  return all.find((m) => (m.mark_no || '').trim().toUpperCase() === clean) || null;
-}
-
-/** 업체 인증 1건이 지금까지 발급받은 마크 이력 (최신순) */
-export async function getMarksForCert(certId: string): Promise<MarkIssue[]> {
-  return getMarkIssues({ certId });
-}
-
-export async function saveMarkIssue(
-  mark: MarkIssue
-): Promise<{ success: boolean; data?: MarkIssue; error?: string }> {
-  const currentList = getLocalData<MarkIssue[]>(STORAGE_KEY_MARKS, SEED_MARKS);
-  const existingIdx = currentList.findIndex((m) => m.id === mark.id);
-  const now = new Date().toISOString();
-  let updatedList: MarkIssue[];
-
-  if (existingIdx >= 0) {
-    updatedList = [...currentList];
-    updatedList[existingIdx] = { ...mark, updated_at: now };
-  } else {
-    updatedList = [{ ...mark, created_at: mark.created_at || now, updated_at: now }, ...currentList];
-  }
-  setLocalData(STORAGE_KEY_MARKS, updatedList);
-
-  if (supabase) {
-    try {
-      const { data, error } = await supabase
-        .from('dpp_kofoti_mark_issues')
-        .upsert({
-          id: mark.id,
-          mark_no: mark.mark_no ?? null,
-          cert_id: mark.cert_id,
-          track: mark.track,
-          carrier: mark.carrier,
-          quantity: mark.quantity ?? 0,
-          printer: mark.printer ?? null,
-          status: mark.status,
-          revoke_reason: mark.revoke_reason ?? null,
-          issued_at: mark.issued_at ?? null,
-          updated_at: now
-        })
-        .select()
-        .single();
-
-      if (error) console.warn('[GoDPP] Supabase saveMarkIssue warning:', error.message);
-      else if (data) return { success: true, data: data as MarkIssue };
-    } catch (err: any) {
-      console.warn('[GoDPP] Supabase saveMarkIssue error:', err?.message || err);
-    }
-  }
-
-  return { success: true, data: mark };
-}
-
-// ------------------------------------------------------------------------------
-// 심사 / 사후관리 이벤트
-// ------------------------------------------------------------------------------
-
-export async function appendCertReview(event: {
-  cert_id: string;
-  /** 감사 로그에 남길 대상. 인증·마크 모두 업체 단위이므로 기본은 인증 ID다. */
-  subject_id?: string;
-  event: CertReviewEventType;
-  actor_name: string;
-  actor_org?: string;
-  actor_role?: string;
-  comment?: string;
-  payload?: Record<string, any>;
-}): Promise<void> {
-  const { subject_id, ...row } = event;
-  const record: CertReviewEvent = {
-    id: `crev-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    cert_id: row.cert_id,
-    event: row.event,
-    actor_name: row.actor_name,
-    actor_org: row.actor_org,
-    actor_role: row.actor_role || 'cert_auditor',
-    comment: row.comment,
-    payload: row.payload,
-    created_at: new Date().toISOString()
-  };
-
-  const currentLogs = getLocalData<CertReviewEvent[]>(STORAGE_KEY_CREVIEW, []);
-  setLocalData(STORAGE_KEY_CREVIEW, [record, ...currentLogs.slice(0, 199)]);
-
-  if (supabase) {
-    try {
-      await supabase.from('dpp_kofoti_cert_reviews').insert([
-        {
-          cert_id: row.cert_id,
-          event: row.event,
-          actor_name: row.actor_name,
-          actor_org: row.actor_org ?? null,
-          actor_role: row.actor_role || 'cert_auditor',
-          comment: row.comment ?? null,
-          payload: row.payload ?? {}
-        }
-      ]);
-    } catch (err) {
-      console.warn('[GoDPP] Supabase appendCertReview failed:', err);
-    }
-  }
-
-  // 검증기관 포털의 기존 감사 로그 화면에도 인증 심사 이력이 함께 흐르게 한다.
-  await logAuditAction({
-    passport_id: subject_id || row.cert_id,
-    accessor_role: row.actor_role || 'cert_auditor',
-    accessor_name: row.actor_name,
-    action: `CERT_${row.event.toUpperCase()}`,
-    details: { cert_id: row.cert_id, comment: row.comment, ...row.payload }
-  });
-}
-
-export async function getCertReviews(certId: string): Promise<CertReviewEvent[]> {
-  const clean = (certId || '').trim();
-  const local = getLocalData<CertReviewEvent[]>(STORAGE_KEY_CREVIEW, []).filter(
-    (r) => r.cert_id === clean
-  );
-
-  if (supabase) {
-    try {
-      const { data, error } = await supabase
-        .from('dpp_kofoti_cert_reviews')
-        .select('*')
-        .eq('cert_id', clean)
-        .order('created_at', { ascending: false });
-
-      if (!error && data) {
-        return sortByCreatedDesc(mergeById(data as CertReviewEvent[], local));
-      }
-    } catch (err) {
-      console.warn('[GoDPP] Supabase getCertReviews fallback:', err);
-    }
-  }
-
-  return sortByCreatedDesc(local);
-}
-
 // ==============================================================================
 // 업체 마스터 (dpp_companies / dpp_company_members)
 //
-// 원단·완제품·국산인증의 소유자이며, 향후 계정·권한(RLS)이 참조할 기준 키다.
+// 원단·완제품의 소유자이며, 향후 계정·권한(RLS)이 참조할 기준 키다.
 // 이름 문자열이 아니라 company_id 로 묶는 것이 요점 — 이름은 공백 하나에 깨진다.
 // ==============================================================================
 
@@ -915,25 +556,22 @@ export async function findOrCreateCompany(input: {
   return created;
 }
 
-/** 업체 하나에 걸린 원단·완제품·국산인증을 한 번에 조회한다(company_id 기준). */
+/** 업체 하나에 걸린 원단·완제품을 한 번에 조회한다(company_id 기준). */
 export async function getCompanyPortfolio(companyId: string): Promise<{
   company: Company | null;
   fabrics: FabricDPP[];
   passports: FashionDPP[];
-  certification: DomesticCertification | null;
 }> {
   const clean = (companyId || '').trim();
-  const [company, fabrics, passports, certs] = await Promise.all([
+  const [company, fabrics, passports] = await Promise.all([
     getCompanyById(clean),
     getFabrics(),
-    getPassports(),
-    getCertifications()
+    getPassports()
   ]);
   return {
     company,
     fabrics: fabrics.filter((f) => f.company_id === clean),
-    passports: passports.filter((p) => p.company_id === clean),
-    certification: certs.find((c) => c.company_id === clean) ?? null
+    passports: passports.filter((p) => p.company_id === clean)
   };
 }
 

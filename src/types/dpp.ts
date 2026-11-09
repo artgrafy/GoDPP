@@ -4,8 +4,7 @@ export type UserRole =
   | 'consumer'
   | 'manufacturer'
   | 'fabric_supplier'
-  | 'verifier'
-  | 'cert_auditor';
+  | 'verifier';
 
 export interface MaterialComposition {
   material: string;

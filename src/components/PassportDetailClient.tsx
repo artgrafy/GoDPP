@@ -2,9 +2,9 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter, useSearchParams, useParams } from 'next/navigation';
-import { getPassportById, getCertForCompany } from '@/lib/supabase';
+import { getPassportById } from '@/lib/supabase';
 import { FashionDPP } from '@/types/dpp';
-import type { DomesticCertification, MarkIssue, ProcessDetail, ProcessKey } from '@/types/domesticCert';
+import type { ProcessDetail, ProcessKey } from '@/types/domesticCert';
 import { summarizeDomesticProcesses } from '@/lib/domesticCert';
 import { DomesticProcessCard } from '@/components/cert/DomesticProcessCard';
 import { Header } from '@/components/Header';
@@ -44,8 +44,6 @@ export function PassportDetailClient({ passportId: propPassportId }: { passportI
   const passportId = typeof rawId === 'string' ? decodeURIComponent(rawId).trim() : '';
 
   const [passport, setPassport] = useState<FashionDPP | null>(null);
-  // 제조사(업체)의 국산인증. 제품에 붙는 것이 아니라 참고 정보로만 보여준다.
-  const [makerCert, setMakerCert] = useState<DomesticCertification | null>(null);
   const [loading, setLoading] = useState(true);
   const [isDeepDataOpen, setIsDeepDataOpen] = useState(false);
   const [isQROpen, setIsQROpen] = useState(false);
@@ -61,13 +59,8 @@ export function PassportDetailClient({ passportId: propPassportId }: { passportI
       setLoading(true);
       try {
         const data = await getPassportById(passportId);
-        // 국산인증은 업체에 발행되므로 제품 ID가 아니라 소유 업체로 조회한다.
-        const cert = data
-          ? await getCertForCompany({ companyId: data.company_id, companyName: data.brand_name })
-          : null;
         if (isMounted) {
           setPassport(data);
-          setMakerCert(cert);
         }
       } catch (err) {
         console.error('[GoDPP] Load passport detail failed:', err);
@@ -258,14 +251,12 @@ export function PassportDetailClient({ passportId: propPassportId }: { passportI
           </button>
         </div>
 
-        {/* 3. 국산 공정 이력 (인증이 아니라 이 제품이 실제로 보유한 공정 데이터) */}
+        {/* 3. 국산 공정 이력 */}
         {processSummary && (
           <DomesticProcessCard
             summary={processSummary}
             subjectType="passport"
             processDetails={processDetails}
-            manufacturerCert={makerCert}
-            manufacturerName={passport.brand_name}
           />
         )}
 

@@ -15,14 +15,6 @@ import {
   ShieldCheck,
   ArrowRight,
   Sparkles,
-  Leaf,
-  CheckCircle2,
-  Building2,
-  FileText,
-  Activity,
-  Globe2,
-  BadgeCheck,
-  Clock,
   ScanLine
 } from 'lucide-react';
 
@@ -33,8 +25,6 @@ export default function HomePage() {
   const [passports, setPassports] = useState<FashionDPP[]>([]);
   const [fabrics, setFabrics] = useState<FabricDPP[]>([]);
   const [selectedPassportForQR, setSelectedPassportForQR] = useState<FashionDPP | null>(null);
-  // 심사 포털은 아직 데모 범위 밖이라 진입 대신 안내만 띄운다.
-  const [reviewNotice, setReviewNotice] = useState(false);
   // 소비자 진입점(히어로 버튼·소비자 카드)은 헤더의 'QR 스캔 데모'와 같은 모달을 연다.
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   // QR 에 실을 origin. 프리렌더 시점엔 카드 자체가 없으므로(데이터가 useEffect 로 들어온다)
@@ -82,9 +72,8 @@ export default function HomePage() {
             </h1>
 
             <p className="text-base sm:text-lg text-slate-300 leading-relaxed mb-8">
-              원사부터 완제품까지 국산 공정 이력을 잇고, 국산 섬유제품 인증기업 정보를 함께
-              기록합니다. 소비자는 QR 하나로 소재·탄소발자국·국산 인증을 확인하고, 규제기관이
-              데이터를 감사합니다.
+              원단 소재 공급사부터 패션 제조사, 소비자, 국가 규제기관까지 하나의 투명한 디지털 여권으로 연결합니다.
+              스캔 한 번으로 탄소발자국, 소재 출처, 수명 연장 가이드를 확인하세요.
             </p>
 
             <div className="flex flex-wrap items-center justify-center gap-4">
@@ -192,63 +181,6 @@ export default function HomePage() {
               >
                 규제 감사 포털 <ArrowRight className="w-3.5 h-3.5" />
               </Link>
-            </div>
-          </div>
-
-          {/* 국산 섬유제품 인증 진입 */}
-          <div className="glass-panel-emerald rounded-2xl border border-emerald-500/25 p-6 sm:p-8 mt-6">
-            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
-                  <BadgeCheck className="w-6 h-6" />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-white mb-1.5">
-                    국산 섬유제품 인증 <span className="text-emerald-400">(섬산련 인증제도 연계)</span>
-                  </h3>
-                  <p className="text-xs text-slate-300 leading-relaxed max-w-2xl">
-                    섬산련 인증은 <strong className="text-slate-100">업체 단위</strong>로 계약하고(2년),
-                    인증기업이 트랙별로 <strong className="text-slate-100">마크</strong>를 발급받아
-                    자사 제품에 부착합니다.
-                    원사 → 제직·편직 → 염색·가공 → 봉제 공정으로 트랙(
-                    <strong className="text-slate-100">T1</strong> ·{' '}
-                    <strong className="text-slate-100">T2</strong> ·{' '}
-                    <strong className="text-slate-100">T3 Yarn Forward</strong>)을 자동 판정하고, 제3자
-                    인증(인증서)과 기업자율인증(확인서) 투트랙으로 운영합니다.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex flex-wrap gap-2 shrink-0">
-                <Link
-                  href="/cert"
-                  className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-slate-950 font-bold text-xs flex items-center gap-1.5 transition-all"
-                >
-                  인증·마크 조회 <ArrowRight className="w-3.5 h-3.5" />
-                </Link>
-                {/* 마크 발급은 업체 단위 동선이라 인증 업체 목록(/cert)의 각 업체 행에서만 진입한다.
-                    업체를 고르지 않은 채 들어오는 입구는 두지 않는다. */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setReviewNotice(true);
-                    setTimeout(() => setReviewNotice(false), 2500);
-                  }}
-                  className={`px-4 py-2.5 rounded-xl border font-bold text-xs flex items-center gap-1.5 transition-all ${
-                    reviewNotice
-                      ? 'bg-slate-800 border-white/20 text-slate-400 cursor-default'
-                      : 'bg-slate-900/70 hover:bg-slate-800 border-white/10 text-slate-200'
-                  }`}
-                >
-                  {reviewNotice ? (
-                    <>
-                      <Clock className="w-3.5 h-3.5" /> 추후 지원 예정
-                    </>
-                  ) : (
-                    '심사 포털'
-                  )}
-                </button>
-              </div>
             </div>
           </div>
         </div>

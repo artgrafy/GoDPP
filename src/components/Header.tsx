@@ -8,8 +8,7 @@ import {
   QrCode,
   Layers,
   Shirt,
-  ScanLine,
-  BadgeCheck
+  ScanLine
 } from 'lucide-react';
 import { QRScannerModal } from './QRScannerModal';
 import { BrandMark } from './BrandMark';
@@ -23,9 +22,7 @@ interface HeaderProps {
 interface NavItem {
   href: string;
   label: string;
-  icon?: React.ComponentType<{ className?: string }>;
-  /** 아이콘 대신 이미지를 쓰는 경우 (국산 섬유제품 인증마크) */
-  iconSrc?: string;
+  icon: React.ComponentType<{ className?: string }>;
   /** 활성 판정. 경로가 서로 접두사 관계인 경우를 정확히 구분한다. */
   match: (pathname: string) => boolean;
 }
@@ -38,13 +35,6 @@ interface NavItem {
  * 특정 제품 하나를 네비에 고정하면 그 제품이 '소비자 메뉴'인 것처럼 보여 오해를 준다.
  */
 const NAV_ITEMS: NavItem[] = [
-  {
-    href: '/cert',
-    label: '국산인증',
-    // 섬산련 국산 섬유제품 인증마크 메인 SYMBOL
-    iconSrc: '/marks/korea-mark-symbol.png',
-    match: (p) => p === '/cert' || p === '/cert-register' || p === '/cert-review' || p === '/cert-mark'
-  },
   {
     href: '/manufacturer',
     label: '패션 DPP',
@@ -75,7 +65,6 @@ export const Header: React.FC<HeaderProps> = ({ currentRole = 'consumer', onRole
     { id: 'consumer', name: '일반 소비자', icon: Shirt, badge: 'Public QR View' },
     { id: 'manufacturer', name: '패션 제조사', icon: QrCode, badge: 'DPP 발급' },
     { id: 'fabric_supplier', name: '원단 공급사', icon: Layers, badge: '소재 등록' },
-    { id: 'cert_auditor', name: '인증 심사원', icon: BadgeCheck, badge: '국산인증 심사' },
     { id: 'verifier', name: '국가·검증기관', icon: ShieldCheck, badge: '심층 감사' },
   ];
 
@@ -138,15 +127,7 @@ export const Header: React.FC<HeaderProps> = ({ currentRole = 'consumer', onRole
                           : 'text-slate-300 hover:text-white hover:bg-white/5'
                       }`}
                     >
-                      {item.iconSrc ? (
-                        // 마크는 흰 바탕에 인쇄되는 것이 원칙이라 다크 네비에서도 흰 칩 위에 올린다
-                        <span className="w-4 h-4 shrink-0 rounded-[3px] paper flex items-center justify-center p-px">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={item.iconSrc} alt="" className="w-full h-full object-contain" />
-                        </span>
-                      ) : Icon ? (
-                        <Icon className="w-4 h-4 shrink-0" />
-                      ) : null}
+                      <Icon className="w-4 h-4 shrink-0" />
                       <span className="whitespace-nowrap">{item.label}</span>
                     </Link>
                   );

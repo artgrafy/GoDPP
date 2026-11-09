@@ -678,11 +678,11 @@ export default function ManufacturerDashboard() {
                   )}
                 </div>
 
-                {/* 국산 섬유제품 인증 — 상속된 원단 공정 + 봉제 공정 선언 */}
+                {/* 국산 공정 이력 — 상속된 원단 공정 + 봉제 공정 선언 */}
                 <div className="p-4 rounded-2xl bg-slate-900/90 border border-emerald-500/20 space-y-3">
                   <label className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
                     <BadgeCheck className="w-4 h-4" />
-                    국산 섬유제품 인증 공정 이력
+                    국산 공정 이력
                   </label>
 
                   {/* 원단에서 상속 (읽기 전용) */}
